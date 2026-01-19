@@ -11,11 +11,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// 1. UPDATED INTERFACE: Removed VerifyPassword (it's logic, not data access)
 type UserRepository interface {
 	GetUserByEmail(email string) (*User, error)
 	GetUserByUUID(uuid string) (*User, error)
 	CreateNewUser(user *User) error
-	VerifyPassword(storedHash string, password string) bool
 }
 
 type UserService struct {
@@ -29,31 +29,53 @@ func NewUserService(userRepo UserRepository) *UserService {
 func (s *UserService) AdminLogin(email, password string) (*LoginRespose, error) {
 	user, err := s.userRepo.GetUserByEmail(email)
 
+	// Security: Return generic error to prevent email enumeration
 	if err != nil {
-		log.Println(err.Error())
-		return nil, errors.New("Invalid Credentials")
+		log.Printf("Login error for %s: %v", email, err) // Log internal details
+		return nil, errors.New("invalid credentials")
 	}
 
 	if user.Role != RoleAdmin {
-		return nil, errors.New("Access Denied: Admin Only")
+		return nil, errors.New("access denied: admin only")
 	}
 
-	if !s.userRepo.VerifyPassword(user.Password, password) {
-		return nil, errors.New("Invalid Credentials")
+	// 2. LOGIC MOVED: Verify password directly here in Service
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, errors.New("invalid credentials")
 	}
 
 	token, err := s.generateToken(user)
 	if err != nil {
-		return nil, errors.New("Failed to generate token")
+		return nil, errors.New("failed to generate token")
 	}
 
-	// don’t expose password hash
+	// Sanitize struct before returning
 	user.Password = ""
 
 	return &LoginRespose{
 		Token: token,
 		User:  *user,
 	}, nil
+}
+
+func (s *UserService) CreateNewUser(user *User) error {
+	user.UUID = uuid.NewString()
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.Password = string(hashedPassword)
+
+	if err := s.userRepo.CreateNewUser(user); err != nil {
+		return err
+	}
+
+	user.Password = ""
+
+	return nil
 }
 
 func (s *UserService) generateToken(user *User) (string, error) {
@@ -72,18 +94,4 @@ func (s *UserService) generateToken(user *User) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secretKey))
-}
-
-func (s *UserService) CreateNewUser(user *User) error {
-	user.UUID = uuid.NewString()
-	user.CreatedAt = time.Now()
-
-	// user.Password is the plain password coming in
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	user.Password = string(hashedPassword)
-	return s.userRepo.CreateNewUser(user)
 }
