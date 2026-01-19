@@ -1,20 +1,21 @@
-package services
+package user
 
 import (
-	"ResourceAllocator/internal/models"
 	"errors"
 	"log"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository interface {
-	GetUserByEmail(email string) (*models.User, error)
-	GetUserByUUID(uuid string) (*models.User, error)
-	CreateNewUser(user *models.User) error
-	VerifyPassword(hashedPassword []byte, password string) bool
+	GetUserByEmail(email string) (*User, error)
+	GetUserByUUID(uuid string) (*User, error)
+	CreateNewUser(user *User) error
+	VerifyPassword(storedHash string, password string) bool
 }
 
 type UserService struct {
@@ -25,7 +26,7 @@ func NewUserService(userRepo UserRepository) *UserService {
 	return &UserService{userRepo: userRepo}
 }
 
-func (s *UserService) AdminLogin(email, password string) (*models.LoginRespose, error) {
+func (s *UserService) AdminLogin(email, password string) (*LoginRespose, error) {
 	user, err := s.userRepo.GetUserByEmail(email)
 
 	if err != nil {
@@ -33,11 +34,11 @@ func (s *UserService) AdminLogin(email, password string) (*models.LoginRespose, 
 		return nil, errors.New("Invalid Credentials")
 	}
 
-	if user.Role != models.RoleAdmin {
+	if user.Role != RoleAdmin {
 		return nil, errors.New("Access Denied: Admin Only")
 	}
 
-	if !s.userRepo.VerifyPassword(user.HashPassword, password) {
+	if !s.userRepo.VerifyPassword(user.Password, password) {
 		return nil, errors.New("Invalid Credentials")
 	}
 
@@ -46,15 +47,16 @@ func (s *UserService) AdminLogin(email, password string) (*models.LoginRespose, 
 		return nil, errors.New("Failed to generate token")
 	}
 
-	user.HashPassword = nil
+	// don’t expose password hash
+	user.Password = ""
 
-	return &models.LoginRespose{
+	return &LoginRespose{
 		Token: token,
 		User:  *user,
 	}, nil
 }
 
-func (s *UserService) generateToken(user *models.User) (string, error) {
+func (s *UserService) generateToken(user *User) (string, error) {
 	secretKey := os.Getenv("JWT_SECRET")
 	if secretKey == "" {
 		secretKey = "your-secret-key-change-in-production"
@@ -70,4 +72,18 @@ func (s *UserService) generateToken(user *models.User) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secretKey))
+}
+
+func (s *UserService) CreateNewUser(user *User) error {
+	user.UUID = uuid.NewString()
+	user.CreatedAt = time.Now()
+
+	// user.Password is the plain password coming in
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.Password = string(hashedPassword)
+	return s.userRepo.CreateNewUser(user)
 }

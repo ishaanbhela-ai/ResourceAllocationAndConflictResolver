@@ -1,23 +1,22 @@
 package routes
 
 import (
-	"ResourceAllocator/internal/api/handlers"
 	"ResourceAllocator/internal/api/middleware"
+	"ResourceAllocator/internal/api/user"
 
 	"github.com/gin-gonic/gin"
 )
 
+// Handlers groups all handler instances used in routing.
+// Each concrete handler still lives in its own package (e.g. user_handler).
 type Handlers struct {
-	UserHandler *handlers.UserHandler
-	// Add more handlers here as you create them:
-	// ResourceHandler *ResourceHandler
-	// BookingHandler  *BookingHandler
-	// etc.
+	UserHandler *user.UserHandler
 }
 
-func NewHandlers(UserHandler *handlers.UserHandler) *Handlers {
+// NewHandlers builds the Handlers container (called from main.go).
+func NewHandlers(userHandler *user.UserHandler) *Handlers {
 	return &Handlers{
-		UserHandler: UserHandler,
+		UserHandler: userHandler,
 	}
 }
 
@@ -34,22 +33,24 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 	{
 		auth := api.Group("/auth")
 		{
+			// Admin login - NOT protected
 			auth.POST("/admin", h.UserHandler.AdminLogin)
 		}
 	}
 
-	//PROTECTED ROUTES
+	// PROTECTED ROUTES
 	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware())
 	{
-
+		// add protected routes later
 	}
 
+	// ADMIN ROUTES
 	admin := api.Group("/admin")
-	admin.Use(middleware.AuthMiddleware())
-	admin.Use(middleware.AdminMiddleware())
+	//admin.Use(middleware.AuthMiddleware())
+	//admin.Use(middleware.AdminMiddleware())
 	{
-
+		admin.POST("/user", h.UserHandler.CreateNewUser)
 	}
 
 	return router

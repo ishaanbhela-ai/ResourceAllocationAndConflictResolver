@@ -1,13 +1,10 @@
 package repository
 
 import (
-	"ResourceAllocator/internal/models"
+	"ResourceAllocator/internal/api/user"
 	"database/sql"
 	"errors"
-	"log"
-	"time"
 
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,30 +16,28 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) GetUserByEmail(email string) (*models.User, error) {
+func (r *UserRepository) GetUserByEmail(email string) (*user.User, error) {
 	query := `
-		SELECT uuid, name, dob, employee_level, role, email, hash_password,
+		SELECT uuid, name, dob, employee_id, role, email, password,
 		       max_daily_bookings, created_at, deleted_at
 		FROM employees
 		WHERE email = $1 AND deleted_at IS NULL
 	`
 
-	user := &models.User{}
+	user := &user.User{}
 
 	err := r.db.QueryRow(query, email).Scan(
 		&user.UUID,
 		&user.Name,
 		&user.DOB,
-		&user.EmployeeLevel,
+		&user.EmployeeID,
 		&user.Role,
 		&user.Email,
-		&user.HashPassword,
+		&user.Password,
 		&user.MaxDailyBookings,
 		&user.CreatedAt,
 		&user.DeletedAt,
 	)
-
-	log.Println(&user.HashPassword)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -54,7 +49,7 @@ func (r *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) GetUserByUUID(uuid string) (*models.User, error) {
+func (r *UserRepository) GetUserByUUID(uuid string) (*user.User, error) {
 	query := `
 		SELECT uuid, name, dob, employee_level, role, email, 
 		       max_daily_bookings, created_at, deleted_at
@@ -62,13 +57,13 @@ func (r *UserRepository) GetUserByUUID(uuid string) (*models.User, error) {
 		WHERE uuid = $1 AND deleted_at IS NULL
 	`
 
-	user := &models.User{}
+	user := &user.User{}
 
 	err := r.db.QueryRow(query, uuid).Scan(
 		&user.UUID,
 		&user.Name,
 		&user.DOB,
-		&user.EmployeeLevel,
+		&user.EmployeeID,
 		&user.Role,
 		&user.Email,
 		&user.MaxDailyBookings,
@@ -86,29 +81,21 @@ func (r *UserRepository) GetUserByUUID(uuid string) (*models.User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) CreateNewUser(user *models.User) error {
-	user.UUID = uuid.NewString()
-	user.CreatedAt = time.Now()
-
-	hashedPassword, err := bcrypt.GenerateFromPassword(user.HashPassword, bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
+func (r *UserRepository) CreateNewUser(user *user.User) error {
 	query := `
-		INSERT INTO employees (uuid, name, dob, employee_level, role, email, 
-		                      hash_password, max_daily_bookings, created_at)
+		INSERT INTO employees (uuid, name, dob, employee_id, role, email,
+		                      password, max_daily_bookings, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
-	_, err = r.db.Exec(query,
+	_, err := r.db.Exec(query,
 		user.UUID,
 		user.Name,
 		user.DOB,
-		user.EmployeeLevel,
+		user.EmployeeID,
 		user.Role,
 		user.Email,
-		hashedPassword,
+		user.Password,
 		user.MaxDailyBookings,
 		user.CreatedAt,
 	)
@@ -116,7 +103,7 @@ func (r *UserRepository) CreateNewUser(user *models.User) error {
 	return err
 }
 
-func (r *UserRepository) VerifyPassword(hashedPassword []byte, password string) bool {
-	err := bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
+func (r *UserRepository) VerifyPassword(storedHash string, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
 	return err == nil
 }

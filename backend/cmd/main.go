@@ -1,11 +1,10 @@
 package main
 
 import (
-	"ResourceAllocator/internal/api/handlers"
 	"ResourceAllocator/internal/api/routes"
+	"ResourceAllocator/internal/api/user"
 	"ResourceAllocator/internal/database"
 	"ResourceAllocator/internal/database/repository"
-	"ResourceAllocator/internal/services"
 	"log"
 )
 
@@ -21,8 +20,8 @@ func main() {
 	// USER FEATURE - Dependency Injection Chain
 	// ============================================
 	userRepo := repository.NewUserRepository(db.GetConnection())
-	userService := services.NewUserService(userRepo)
-	userHandler := handlers.NewUserHandler(userService)
+	userService := user.NewUserService(userRepo)
+	userHandler := user.NewUserHandler(userService)
 
 	appHandlers := routes.NewHandlers(
 		userHandler,
