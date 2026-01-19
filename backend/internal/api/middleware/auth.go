@@ -11,6 +11,6 @@ func AuthMiddleware() gin.HandlerFunc {
 
 func AdminMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		ctx.Next()
+
 	}
 }
