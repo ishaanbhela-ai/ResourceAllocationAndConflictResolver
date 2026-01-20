@@ -26,10 +26,9 @@ func NewUserService(userRepo UserRepository) *UserService {
 	return &UserService{userRepo: userRepo}
 }
 
-func (s *UserService) AdminLogin(email, password string) (*LoginRespose, error) {
+func (s *UserService) AdminLogin(email, password string) (*LoginResponse, error) {
 	user, err := s.userRepo.GetUserByEmail(email)
 
-	// Security: Return generic error to prevent email enumeration
 	if err != nil {
 		log.Printf("Login error for %s: %v", email, err) // Log internal details
 		return nil, errors.New("invalid credentials")
@@ -39,7 +38,6 @@ func (s *UserService) AdminLogin(email, password string) (*LoginRespose, error) 
 		return nil, errors.New("access denied: admin only")
 	}
 
-	// 2. LOGIC MOVED: Verify password directly here in Service
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("invalid credentials")
@@ -50,10 +48,9 @@ func (s *UserService) AdminLogin(email, password string) (*LoginRespose, error) 
 		return nil, errors.New("failed to generate token")
 	}
 
-	// Sanitize struct before returning
 	user.Password = ""
 
-	return &LoginRespose{
+	return &LoginResponse{
 		Token: token,
 		User:  *user,
 	}, nil

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"ResourceAllocator/internal/api/response"
 	"net/http"
 	"strings"
 
@@ -8,7 +9,7 @@ import (
 )
 
 type IUserService interface {
-	AdminLogin(email, password string) (*LoginRespose, error)
+	AdminLogin(email, password string) (*LoginResponse, error)
 	CreateNewUser(user *User) error
 }
 
@@ -24,24 +25,24 @@ func (uh *UserHandler) AdminLogin(c *gin.Context) {
 	var loginReq LoginRequest
 
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, "Invalid login request")
 		return
 	}
 
-	response, err := uh.iuserService.AdminLogin(loginReq.Email, loginReq.Password)
+	loginRes, err := uh.iuserService.AdminLogin(loginReq.Email, loginReq.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, loginRes)
 }
 
 func (uh *UserHandler) CreateNewUser(c *gin.Context) {
 	var user User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, "Invalid user")
 		return
 	}
 
@@ -49,11 +50,11 @@ func (uh *UserHandler) CreateNewUser(c *gin.Context) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique constraint") {
-			c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists"})
+			response.Error(c, http.StatusConflict, "User with this email already exists")
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		response.Error(c, http.StatusInternalServerError, "Failed to create user", err.Error())
 		return
 	}
 	c.JSON(http.StatusCreated, user)

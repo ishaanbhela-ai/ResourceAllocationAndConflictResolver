@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/routes"
 	"ResourceAllocator/internal/api/user"
 	"ResourceAllocator/internal/database"
@@ -29,8 +30,16 @@ func main() {
 	userService := user.NewUserService(userRepo)
 	userHandler := user.NewUserHandler(userService)
 
+	// ============================================
+	// RESOURCE FEATURE - Dependency Injection Chain
+	// ============================================
+	resourceRepo := repository.NewResourceRepository(db.GetConnection())
+	resourceService := resource.NewResourceService(resourceRepo)
+	resourceHandler := resource.NewResourceHandler(resourceService)
+
 	appHandlers := routes.NewHandlers(
 		userHandler,
+		resourceHandler,
 	)
 
 	router := routes.SetupRoutes(appHandlers)
