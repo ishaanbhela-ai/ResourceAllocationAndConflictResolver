@@ -2,6 +2,8 @@ package user
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Role string
@@ -12,16 +14,17 @@ const (
 )
 
 type User struct {
-	UUID             string     `json:"uuid" db:"uuid"`
-	Name             string     `json:"name" db:"name" binding:"required"`
-	DOB              time.Time  `json:"dob" db:"dob" binding:"required"`
-	EmployeeID       string     `json:"employee_id" db:"employee_id" binding:"required"`
-	Role             Role       `json:"role" db:"role" binding:"required"`
-	Email            string     `json:"email" db:"email" binding:"required,email"`
-	Password         string     `json:"password" db:"password" binding:"required"` // bcrypt hash as string
-	MaxDailyBookings int        `json:"max_daily_bookings" db:"max_daily_bookings" binding:"required"`
-	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
-	DeletedAt        *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
+	UUID             string         `json:"uuid" gorm:"primaryKey;type:varchar(36)"`
+	Name             string         `json:"name" binding:"required"`
+	DOB              time.Time      `json:"dob" binding:"required"`
+	EmployeeID       string         `json:"employee_id" binding:"required"`
+	Role             Role           `json:"role" binding:"required"`
+	Email            string         `json:"email" binding:"required,email" gorm:"unique;not null"`
+	Password         string         `json:"password" binding:"required"`
+	MaxDailyBookings int            `json:"max_daily_bookings" binding:"required" gorm:"default:5"`
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
 }
 
 type LoginRequest struct {

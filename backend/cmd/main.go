@@ -6,15 +6,21 @@ import (
 	"ResourceAllocator/internal/database"
 	"ResourceAllocator/internal/database/repository"
 	"log"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	db, err := database.NewDB()
+
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Failed to initalize database: %v", err)
+		log.Println("No .env file found or error loading it. Relying on System Environment Variables.")
 	}
 
-	defer db.Close()
+	db, err := database.NewDB()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
 
 	// ============================================
 	// USER FEATURE - Dependency Injection Chain
@@ -30,7 +36,6 @@ func main() {
 	router := routes.SetupRoutes(appHandlers)
 
 	port := ":8080"
-
 	log.Printf("Server Starting on port %s", port)
 	if err := router.Run(port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

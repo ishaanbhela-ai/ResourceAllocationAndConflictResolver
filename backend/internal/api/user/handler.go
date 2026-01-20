@@ -2,6 +2,7 @@ package user
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,7 +38,6 @@ func (uh *UserHandler) AdminLogin(c *gin.Context) {
 }
 
 func (uh *UserHandler) CreateNewUser(c *gin.Context) {
-
 	var user User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -48,10 +48,13 @@ func (uh *UserHandler) CreateNewUser(c *gin.Context) {
 	err := uh.iuserService.CreateNewUser(&user)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique constraint") {
+			c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "User Created Successfully"})
-
+	c.JSON(http.StatusCreated, user)
 }
