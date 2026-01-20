@@ -2,6 +2,7 @@ package routes
 
 import (
 	"ResourceAllocator/internal/api/middleware"
+	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/user"
 
 	"github.com/gin-gonic/gin"
@@ -10,13 +11,15 @@ import (
 // Handlers groups all handler instances used in routing.
 // Each concrete handler still lives in its own package (e.g. user_handler).
 type Handlers struct {
-	UserHandler *user.UserHandler
+	UserHandler     *user.UserHandler
+	ResourceHandler *resource.ResourceHandler
 }
 
 // NewHandlers builds the Handlers container (called from main.go).
-func NewHandlers(userHandler *user.UserHandler) *Handlers {
+func NewHandlers(userHandler *user.UserHandler, resourceHandler *resource.ResourceHandler) *Handlers {
 	return &Handlers{
-		UserHandler: userHandler,
+		UserHandler:     userHandler,
+		ResourceHandler: resourceHandler,
 	}
 }
 
@@ -34,7 +37,7 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 		auth := api.Group("/auth")
 		{
 			// Admin login - NOT protected
-			auth.POST("/admin", h.UserHandler.AdminLogin)
+			auth.POST("/admin", h.UserHandler.AdminLogin) // For Admin to Login
 		}
 	}
 
@@ -42,7 +45,10 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		// add protected routes later
+		protected.GET("/resources", h.ResourceHandler.ListResources)            // For users/ Admins to see all resources
+		protected.GET("/resources/:id", h.ResourceHandler.GetResource)          // For users/ Admins to see a specific resource
+		protected.GET("/resource_types", h.ResourceHandler.ListResourceTypes)   // For users/ Admins to see all resource types
+		protected.GET("/resource_types/:id", h.ResourceHandler.GetResourceType) // For users/ Admins to see a specific resource type
 	}
 
 	// ADMIN ROUTES
@@ -51,6 +57,14 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 	//admin.Use(middleware.AdminMiddleware())
 	{
 		admin.POST("/user", h.UserHandler.CreateNewUser)
+
+		// Resource Management
+		admin.POST("/resources", h.ResourceHandler.CreateResource)                 // For Admins to create a new resource
+		admin.PUT("/resources/:id", h.ResourceHandler.UpdateResource)              // For Admins to update a resource
+		admin.PUT("/resource_types/:id", h.ResourceHandler.UpdateResourceType)     // For Admins to update a resource
+		admin.DELETE("/resources/:id", h.ResourceHandler.DeleteResource)           // For Admins to delete a resource
+		admin.DELETE("/resources_types/:id", h.ResourceHandler.DeleteResourceType) // For Admins to delete a resource
+		admin.POST("/resource_types", h.ResourceHandler.CreateResourceType)        // For Admins to create a new resource type
 	}
 
 	return router

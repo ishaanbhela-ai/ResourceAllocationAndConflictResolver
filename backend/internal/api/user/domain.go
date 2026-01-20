@@ -32,7 +32,7 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type LoginRespose struct {
+type LoginResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
 }
