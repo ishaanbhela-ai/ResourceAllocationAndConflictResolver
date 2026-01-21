@@ -13,9 +13,14 @@ import (
 
 // 1. UPDATED INTERFACE: Removed VerifyPassword (it's logic, not data access)
 type UserRepository interface {
-	GetUserByEmail(email string) (*User, error)
+	// Return UserCreate here (contains password)
+	GetUserByEmail(email string) (*UserCreate, error)
 	GetUserByUUID(uuid string) (*User, error)
-	CreateNewUser(user *User) error
+	// Accept UserCreate here
+	CreateNewUser(user *UserCreate) error
+	UpdateUser(user *User) error
+	DeleteUser(uuid string) error
+	ListUsers() ([]UserSummary, error)
 }
 
 type UserService struct {
@@ -26,39 +31,32 @@ func NewUserService(userRepo UserRepository) *UserService {
 	return &UserService{userRepo: userRepo}
 }
 
-func (s *UserService) AdminLogin(email, password string) (*LoginResponse, error) {
-	user, err := s.userRepo.GetUserByEmail(email)
+func (s *UserService) Login(email, password string) (*LoginResponse, error) {
+	userWithPass, err := s.userRepo.GetUserByEmail(email)
 
 	if err != nil {
 		log.Printf("Login error for %s: %v", email, err) // Log internal details
 		return nil, errors.New("invalid credentials")
 	}
 
-	if user.Role != RoleAdmin {
-		return nil, errors.New("access denied: admin only")
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(userWithPass.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
 
-	token, err := s.generateToken(user)
+	token, err := s.generateToken(&userWithPass.User)
 	if err != nil {
 		return nil, errors.New("failed to generate token")
 	}
 
-	user.Password = ""
-
 	return &LoginResponse{
 		Token: token,
-		User:  *user,
+		User:  userWithPass.User, // Return the User part (without password)
 	}, nil
 }
 
-func (s *UserService) CreateNewUser(user *User) error {
+func (s *UserService) CreateNewUser(user *UserCreate) error {
 	user.UUID = uuid.NewString()
-
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -91,4 +89,32 @@ func (s *UserService) generateToken(user *User) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secretKey))
+}
+
+func (s *UserService) UpdateUser(user *User) (*User, error) {
+	_, err := s.GetUserByUUID(user.UUID)
+	if err != nil {
+		return nil, err
+	}
+	err = s.userRepo.UpdateUser(user)
+	if err != nil {
+		return nil, err
+	}
+	return s.GetUserByUUID(user.UUID)
+}
+
+func (s *UserService) GetUserByUUID(uuid string) (*User, error) {
+	return s.userRepo.GetUserByUUID(uuid)
+}
+
+func (s *UserService) ListUsers() ([]UserSummary, error) {
+	return s.userRepo.ListUsers()
+}
+
+func (s *UserService) DeleteUser(uuid string) error {
+	_, err := s.GetUserByUUID(uuid)
+	if err != nil {
+		return err
+	}
+	return s.userRepo.DeleteUser(uuid)
 }

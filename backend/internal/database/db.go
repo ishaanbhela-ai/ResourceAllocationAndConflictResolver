@@ -56,7 +56,7 @@ func NewDB() (*DB, error) {
 	log.Println("Database connection established successfully")
 
 	// Auto-migrate tables
-	if err := db.AutoMigrate(&user.User{}, &resource.Resource{}, &resource.ResourceType{}); err != nil {
+	if err := db.AutoMigrate(&user.UserCreate{}, &resource.Resource{}, &resource.ResourceType{}); err != nil {
 		return nil, fmt.Errorf("failed to auto-migrate: %w", err)
 	}
 

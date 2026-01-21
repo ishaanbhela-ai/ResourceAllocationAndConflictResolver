@@ -10,21 +10,28 @@ type Role string
 
 const (
 	RoleAdmin    Role = "ADMIN"
-	RoleEmployee Role = "Employee"
+	RoleEmployee Role = "EMPLOYEE"
 )
 
 type User struct {
-	UUID             string         `json:"uuid" gorm:"primaryKey;type:varchar(36)"`
-	Name             string         `json:"name" binding:"required"`
-	DOB              time.Time      `json:"dob" binding:"required"`
-	EmployeeID       string         `json:"employee_id" binding:"required"`
-	Role             Role           `json:"role" binding:"required"`
-	Email            string         `json:"email" binding:"required,email" gorm:"unique;not null"`
-	Password         string         `json:"password" binding:"required"`
-	MaxDailyBookings int            `json:"max_daily_bookings" binding:"required" gorm:"default:5"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
-	DeletedAt        gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+	UUID       string         `json:"uuid" gorm:"primaryKey;type:varchar(36)"`
+	Name       string         `json:"name" binding:"required"`
+	DOB        time.Time      `json:"dob" binding:"required"`
+	EmployeeID string         `json:"employee_id" binding:"required"`
+	Role       Role           `json:"role" binding:"required,oneof=ADMIN EMPLOYEE"`
+	Email      string         `json:"email" binding:"required,email" gorm:"unique;not null"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+}
+
+type UserCreate struct {
+	User
+	Password string `json:"password" binding:"required"`
+}
+
+func (UserCreate) TableName() string {
+	return "users"
 }
 
 type LoginRequest struct {
@@ -35,4 +42,11 @@ type LoginRequest struct {
 type LoginResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
+}
+
+type UserSummary struct {
+	UUID       string `json:"uuid"`
+	Name       string `json:"name"`
+	EmployeeID string `json:"employee_id"`
+	Role       Role   `json:"role"`
 }

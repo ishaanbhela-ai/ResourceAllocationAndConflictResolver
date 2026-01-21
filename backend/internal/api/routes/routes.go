@@ -37,7 +37,7 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 		auth := api.Group("/auth")
 		{
 			// Admin login - NOT protected
-			auth.POST("/admin", h.UserHandler.AdminLogin) // For Admin to Login
+			auth.POST("/admin", h.UserHandler.Login) // For Admin to Login
 		}
 	}
 
@@ -45,18 +45,26 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware())
 	{
+		// Resource Management
 		protected.GET("/resources", h.ResourceHandler.ListResources)            // For users/ Admins to see all resources
 		protected.GET("/resources/:id", h.ResourceHandler.GetResource)          // For users/ Admins to see a specific resource
 		protected.GET("/resource_types", h.ResourceHandler.ListResourceTypes)   // For users/ Admins to see all resource types
 		protected.GET("/resource_types/:id", h.ResourceHandler.GetResourceType) // For users/ Admins to see a specific resource type
+
+		// User Management
+		protected.GET("/user", h.UserHandler.GetUser)
 	}
 
 	// ADMIN ROUTES
 	admin := api.Group("/admin")
-	//admin.Use(middleware.AuthMiddleware())
-	//admin.Use(middleware.AdminMiddleware())
+	admin.Use(middleware.AuthMiddleware())
+	admin.Use(middleware.AdminMiddleware())
 	{
+		// User Management
 		admin.POST("/user", h.UserHandler.CreateNewUser)
+		admin.GET("/user", h.UserHandler.ListUsers)
+		admin.DELETE("/user/:uuid", h.UserHandler.DeleteUser)
+		admin.PUT("/user/:uuid", h.UserHandler.UpdateUser)
 
 		// Resource Management
 		admin.POST("/resources", h.ResourceHandler.CreateResource)                 // For Admins to create a new resource
