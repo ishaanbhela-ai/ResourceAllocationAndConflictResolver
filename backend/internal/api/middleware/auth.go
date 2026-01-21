@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"ResourceAllocator/internal/api/response"
+	"ResourceAllocator/internal/api/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -16,14 +16,14 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			response.Error(c, http.StatusUnauthorized, "Authorization token required")
+			utils.Error(c, http.StatusUnauthorized, "Authorization token required")
 			c.Abort()
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			response.Error(c, http.StatusUnauthorized, "Invalid authorization header format")
+			utils.Error(c, http.StatusUnauthorized, "Invalid authorization header format")
 			c.Abort()
 			return
 		}
@@ -42,14 +42,14 @@ func AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			response.Error(c, http.StatusUnauthorized, "Invalid or expired token")
+			utils.Error(c, http.StatusUnauthorized, "Invalid or expired token")
 			c.Abort()
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			response.Error(c, http.StatusUnauthorized, "Invalid token claims")
+			utils.Error(c, http.StatusUnauthorized, "Invalid token claims")
 			c.Abort()
 			return
 		}
@@ -70,7 +70,7 @@ func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("userRole")
 		if !exists || role != "ADMIN" {
-			response.Error(c, http.StatusForbidden, "Access denied: Admins only")
+			utils.Error(c, http.StatusForbidden, "Access denied: Admins only")
 			c.Abort()
 			return
 		}

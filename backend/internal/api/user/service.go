@@ -1,10 +1,10 @@
 package user
 
 import (
-	"errors"
-	"log"
 	"os"
 	"time"
+
+	"ResourceAllocator/internal/api/utils"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -35,18 +35,17 @@ func (s *UserService) Login(email, password string) (*LoginResponse, error) {
 	userWithPass, err := s.userRepo.GetUserByEmail(email)
 
 	if err != nil {
-		log.Printf("Login error for %s: %v", email, err) // Log internal details
-		return nil, errors.New("invalid credentials")
+		return nil, utils.ErrInvalidCredentials
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(userWithPass.Password), []byte(password))
 	if err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, utils.ErrInvalidCredentials
 	}
 
 	token, err := s.generateToken(&userWithPass.User)
 	if err != nil {
-		return nil, errors.New("failed to generate token")
+		return nil, utils.ErrInternal
 	}
 
 	return &LoginResponse{
@@ -59,7 +58,7 @@ func (s *UserService) CreateNewUser(user *UserCreate) error {
 	user.UUID = uuid.NewString()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return utils.ErrInternal
 	}
 
 	user.Password = string(hashedPassword)
@@ -76,7 +75,7 @@ func (s *UserService) CreateNewUser(user *UserCreate) error {
 func (s *UserService) generateToken(user *User) (string, error) {
 	secretKey := os.Getenv("JWT_SECRET")
 	if secretKey == "" {
-		secretKey = "your-secret-key-change-in-production"
+		return "", utils.ErrInternal
 	}
 
 	claims := jwt.MapClaims{

@@ -2,9 +2,9 @@ package repository
 
 import (
 	"ResourceAllocator/internal/api/user"
+	"ResourceAllocator/internal/api/utils"
 	"errors"
 
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -19,11 +19,10 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 
 func (r *UserRepository) GetUserByEmail(email string) (*user.UserCreate, error) {
 	var u user.UserCreate
-	// GORM will populate the embedded User fields + Password
 	result := r.db.Where("email = ?", email).First(&u)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, errors.New("User not Found")
+			return nil, utils.ErrNotFound
 		}
 		return nil, result.Error
 	}
@@ -32,30 +31,26 @@ func (r *UserRepository) GetUserByEmail(email string) (*user.UserCreate, error) 
 
 func (r *UserRepository) GetUserByUUID(uuid string) (*user.User, error) {
 	var u user.User
-
-	// GORM: Find by Primary Key
 	result := r.db.First(&u, "uuid = ?", uuid)
-
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, errors.New("User not Found")
+			return nil, utils.ErrNotFound
 		}
 		return nil, result.Error
 	}
-
 	return &u, nil
 }
 
 func (r *UserRepository) CreateNewUser(u *user.UserCreate) error {
-	// Note: You might need to make sure GORM inserts into the "users" table
-	// If UserCreate doesn't map automatically, use Table("users")
 	result := r.db.Table("users").Create(u)
-	return result.Error
-}
 
-func (r *UserRepository) VerifyPassword(storedHash string, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
-	return err == nil
+	if result.Error != nil {
+		if utils.IsDuplicateKeyError(result.Error) {
+			return utils.ErrConflict // Strictly typed "User already exists"
+		}
+		return result.Error
+	}
+	return nil
 }
 
 func (r *UserRepository) ListUsers() ([]user.UserSummary, error) {
@@ -70,7 +65,7 @@ func (r *UserRepository) DeleteUser(uuid string) error {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return errors.New("user not found")
+		return utils.ErrNotFound
 	}
 	return nil
 }
@@ -80,5 +75,12 @@ func (r *UserRepository) UpdateUser(u *user.User) error {
 	if err != nil {
 		return err
 	}
-	return r.db.Model(&user.User{}).Where("uuid = ?", u.UUID).Updates(u).Error
+
+	if err := r.db.Model(&user.User{}).Where("uuid = ?", u.UUID).Updates(u).Error; err != nil {
+		if utils.IsDuplicateKeyError(err) {
+			return utils.ErrConflict
+		}
+		return err
+	}
+	return nil
 }

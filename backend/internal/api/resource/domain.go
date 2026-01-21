@@ -10,7 +10,7 @@ type Resource struct {
 	Description      string                 `json:"description" binding:"required"`
 	IsActive         bool                   `json:"is_active" gorm:"default:true"`
 	RequiresApproval bool                   `json:"requires_approval" gorm:"default:false"`
-	Properties       map[string]interface{} `json:"properties" gorm:"serializer:json"`
+	Properties       map[string]interface{} `json:"properties" gorm:"type:jsonb;serializer:json"`
 	CreatedAt        time.Time              `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt        time.Time              `json:"updated_at" gorm:"autoUpdateTime"`
 }
@@ -18,7 +18,7 @@ type Resource struct {
 type ResourceType struct {
 	ID               int               `json:"id" gorm:"primaryKey;autoIncrement"`
 	Type             string            `json:"type" binding:"required"`
-	SchemaDefinition map[string]string `json:"schema_definition" gorm:"serializer:json"`
+	SchemaDefinition map[string]string `json:"schema_definition" gorm:"type:jsonb;serializer:json"`
 }
 
 type ResourceSummary struct {
