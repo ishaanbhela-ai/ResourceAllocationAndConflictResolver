@@ -14,8 +14,8 @@ type IBookingRepo interface {
 	GetPendingOverlaps(resourceID int, start, end time.Time) ([]Booking, error)
 	UpdateBooking(b *Booking) error
 	ApproveBookingAndRejectConflicts(targetBooking *Booking, conflicts []Booking) error
-	GetBookingsByUserID(userID string) ([]Booking, error)
-	GetAllBookings(filters map[string]interface{}) ([]Booking, error)
+	GetBookingsByUserID(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
+	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]Booking, error)
 }
 
@@ -209,11 +209,34 @@ func (s *BookingService) CancelBooking(id int, userID string) error {
 	return s.BookingRepo.UpdateBooking(booking)
 }
 
-func (s *BookingService) GetMyBookings(userID string) ([]Booking, error) {
-	return s.BookingRepo.GetBookingsByUserID(userID)
+func (s *BookingService) GetMyBookings(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error) {
+	bookings, total, err := s.BookingRepo.GetBookingsByUserID(userID, filters, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+	return s.mapToSummary(bookings), total, nil
 }
 
 // 5. List (Admin)
-func (s *BookingService) GetAllBookings(filters map[string]interface{}) ([]Booking, error) {
-	return s.BookingRepo.GetAllBookings(filters)
+func (s *BookingService) GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error) {
+	bookings, total, err := s.BookingRepo.GetAllBookings(filters, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+	return s.mapToSummary(bookings), total, nil
+}
+
+func (s *BookingService) mapToSummary(bookings []Booking) []BookingSummary {
+	summaries := make([]BookingSummary, len(bookings))
+	for i, b := range bookings {
+		summaries[i] = BookingSummary{
+			ID:           b.ID,
+			ResourceName: fmt.Sprintf("%d", b.ResourceID), // Placeholder: Returning ID as name since we lack join.
+			UserName:     b.UserID,                        // Placeholder: Returning UUID as name.
+			StartTime:    b.StartTime,
+			EndTime:      b.EndTime,
+			Status:       b.Status,
+		}
+	}
+	return summaries
 }

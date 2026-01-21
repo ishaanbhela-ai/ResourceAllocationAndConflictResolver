@@ -10,8 +10,8 @@ import (
 
 type IResourceService interface {
 	GetResourceByID(id int) (*Resource, error)
-	GetAllResources(typeID *int, location string, props map[string]string) ([]ResourceSummary, error)
-	GetAllResourceTypes() ([]ResourceType, error)
+	GetAllResources(typeID *int, location string, props map[string]string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error)
+	GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceType, int64, error)
 	GetResourceTypeByID(id int) (*ResourceType, error)
 
 	CreateResource(res *Resource) error
@@ -61,7 +61,10 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 }
 
 func (h *ResourceHandler) ListResources(c *gin.Context) {
-	// 1. Standard Filters
+	// 1. Pagination
+	pagination := utils.GetPaginationParams(c)
+
+	// 2. Standard Filters
 	var typeID *int
 	if tID := c.Query("type_id"); tID != "" {
 		id, err := strconv.Atoi(tID)
@@ -73,20 +76,20 @@ func (h *ResourceHandler) ListResources(c *gin.Context) {
 	}
 	location := c.Query("location")
 
-	// 2. Dynamic Filters
+	// 3. Dynamic Filters
 	props := make(map[string]string)
 	for key, values := range c.Request.URL.Query() {
 		if len(key) > 5 && key[:5] == "prop_" && len(values) > 0 {
 			props[key[5:]] = values[0]
 		}
 	}
-	// 3. Call Service
-	resources, err := h.iservice.GetAllResources(typeID, location, props)
+	// 4. Call Service
+	resources, total, err := h.iservice.GetAllResources(typeID, location, props, pagination)
 	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, resources)
+	c.JSON(http.StatusOK, utils.GetPaginatedResponse(resources, pagination.Page, pagination.Limit, total))
 }
 
 func (h *ResourceHandler) UpdateResource(c *gin.Context) {
@@ -137,12 +140,13 @@ func (h *ResourceHandler) CreateResourceType(c *gin.Context) {
 }
 
 func (h *ResourceHandler) ListResourceTypes(c *gin.Context) {
-	types, err := h.iservice.GetAllResourceTypes()
+	pagination := utils.GetPaginationParams(c)
+	types, total, err := h.iservice.GetAllResourceTypes(pagination)
 	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, types)
+	c.JSON(http.StatusOK, utils.GetPaginatedResponse(types, pagination.Page, pagination.Limit, total))
 }
 
 func (h *ResourceHandler) GetResourceType(c *gin.Context) {

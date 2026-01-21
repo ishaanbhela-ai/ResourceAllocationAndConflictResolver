@@ -39,8 +39,9 @@ func (r *ResourceRepository) GetResourceByID(id int) (*resource.Resource, error)
 	return &res, nil
 }
 
-func (r *ResourceRepository) GetAllResources(typeID *int, location string, props map[string]string) ([]resource.ResourceSummary, error) {
+func (r *ResourceRepository) GetAllResources(typeID *int, location string, props map[string]string, pagination utils.PaginationQuery) ([]resource.ResourceSummary, int64, error) {
 	var resources []resource.ResourceSummary
+	var total int64
 	query := r.db.Model(&resource.Resource{})
 	// 1. Standard SQL Filters
 	if typeID != nil {
@@ -53,10 +54,18 @@ func (r *ResourceRepository) GetAllResources(typeID *int, location string, props
 	for key, value := range props {
 		query = query.Where("properties::jsonb ->> ? = ?", key, value)
 	}
-	if err := query.Find(&resources).Error; err != nil {
-		return nil, err
+	// Count Total
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return resources, nil
+	// Pagination
+	offset := (pagination.Page - 1) * pagination.Limit
+	err := query.Order("created_at desc").
+		Limit(pagination.Limit).
+		Offset(offset).
+		Find(&resources).Error
+
+	return resources, total, err
 }
 
 func (r *ResourceRepository) UpdateResource(res *resource.Resource) error {
@@ -90,12 +99,22 @@ func (r *ResourceRepository) CreateResourceType(resType *resource.ResourceType) 
 	return nil
 }
 
-func (r *ResourceRepository) GetAllResourceTypes() ([]resource.ResourceType, error) {
+func (r *ResourceRepository) GetAllResourceTypes(pagination utils.PaginationQuery) ([]resource.ResourceType, int64, error) {
 	var types []resource.ResourceType
-	if err := r.db.Find(&types).Error; err != nil {
-		return nil, err
+	var total int64
+
+	query := r.db.Model(&resource.ResourceType{})
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return types, nil
+
+	offset := (pagination.Page - 1) * pagination.Limit
+	err := query.Order("id asc").
+		Limit(pagination.Limit).
+		Offset(offset).
+		Find(&types).Error
+
+	return types, total, err
 }
 
 func (r *ResourceRepository) GetResourceTypeByID(id int) (*resource.ResourceType, error) {

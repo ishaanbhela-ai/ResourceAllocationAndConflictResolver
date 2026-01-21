@@ -20,7 +20,7 @@ type UserRepository interface {
 	CreateNewUser(user *UserCreate) error
 	UpdateUser(user *User) error
 	DeleteUser(uuid string) error
-	ListUsers() ([]UserSummary, error)
+	ListUsers(pagination utils.PaginationQuery) ([]UserSummary, int64, error)
 }
 
 type UserService struct {
@@ -106,8 +106,8 @@ func (s *UserService) GetUserByUUID(uuid string) (*User, error) {
 	return s.userRepo.GetUserByUUID(uuid)
 }
 
-func (s *UserService) ListUsers() ([]UserSummary, error) {
-	return s.userRepo.ListUsers()
+func (s *UserService) ListUsers(pagination utils.PaginationQuery) ([]UserSummary, int64, error) {
+	return s.userRepo.ListUsers(pagination)
 }
 
 func (s *UserService) DeleteUser(uuid string) error {

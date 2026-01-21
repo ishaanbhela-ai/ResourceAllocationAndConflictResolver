@@ -7,8 +7,8 @@ import (
 
 type ResourceRepository interface {
 	GetResourceByID(id int) (*Resource, error)
-	GetAllResources(typeID *int, location string, props map[string]string) ([]ResourceSummary, error)
-	GetAllResourceTypes() ([]ResourceType, error)
+	GetAllResources(typeID *int, location string, props map[string]string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error)
+	GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceType, int64, error)
 	GetResourceTypeByID(id int) (*ResourceType, error)
 
 	CreateResource(res *Resource) error
@@ -48,24 +48,24 @@ func (s *ResourceService) GetResourceByID(id int) (*Resource, error) {
 	return s.Repo.GetResourceByID(id)
 }
 
-func (s *ResourceService) GetAllResources(typeID *int, location string, props map[string]string) ([]ResourceSummary, error) {
+func (s *ResourceService) GetAllResources(typeID *int, location string, props map[string]string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error) {
 	// VALIDATION LOGIC
 	if len(props) > 0 {
 		if typeID == nil {
-			return nil, fmt.Errorf("%w: cannot filter by properties without specifying type_id", utils.ErrInvalidInput)
+			return nil, 0, fmt.Errorf("%w: cannot filter by properties without specifying type_id", utils.ErrInvalidInput)
 		}
 		// Verify properties against Schema
 		resType, err := s.Repo.GetResourceTypeByID(*typeID)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		for key := range props {
 			if _, ok := resType.SchemaDefinition[key]; !ok {
-				return nil, fmt.Errorf("%w: property '%s' is not valid for this resource type", utils.ErrInvalidInput, key)
+				return nil, 0, fmt.Errorf("%w: property '%s' is not valid for this resource type", utils.ErrInvalidInput, key)
 			}
 		}
 	}
-	return s.Repo.GetAllResources(typeID, location, props)
+	return s.Repo.GetAllResources(typeID, location, props, pagination)
 }
 
 func (s *ResourceService) UpdateResource(res *Resource) error {
@@ -88,8 +88,8 @@ func (s *ResourceService) CreateResourceType(resType *ResourceType) error {
 	return s.Repo.CreateResourceType(resType)
 }
 
-func (s *ResourceService) GetAllResourceTypes() ([]ResourceType, error) {
-	return s.Repo.GetAllResourceTypes()
+func (s *ResourceService) GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceType, int64, error) {
+	return s.Repo.GetAllResourceTypes(pagination)
 }
 
 func (s *ResourceService) GetResourceTypeByID(id int) (*ResourceType, error) {

@@ -54,10 +54,22 @@ func (r *UserRepository) CreateNewUser(u *user.UserCreate) error {
 	return nil
 }
 
-func (r *UserRepository) ListUsers() ([]user.UserSummary, error) {
+func (r *UserRepository) ListUsers(pagination utils.PaginationQuery) ([]user.UserSummary, int64, error) {
 	users := []user.UserSummary{}
-	result := r.db.Table("users").Find(&users)
-	return users, result.Error
+	var total int64
+
+	query := r.db.Table("users")
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (pagination.Page - 1) * pagination.Limit
+	err := query.Order("created_at desc").
+		Limit(pagination.Limit).
+		Offset(offset).
+		Find(&users).Error
+
+	return users, total, err
 }
 
 func (r *UserRepository) DeleteUser(uuid string) error {

@@ -12,7 +12,7 @@ type IUserService interface {
 	CreateNewUser(user *UserCreate) error
 	UpdateUser(user *User) (*User, error)
 	GetUserByUUID(uuid string) (*User, error)
-	ListUsers() ([]UserSummary, error)
+	ListUsers(pagination utils.PaginationQuery) ([]UserSummary, int64, error)
 	DeleteUser(uuid string) error
 }
 
@@ -84,12 +84,13 @@ func (uh *UserHandler) GetUser(c *gin.Context) {
 }
 
 func (uh *UserHandler) ListUsers(c *gin.Context) {
-	users, err := uh.iuserService.ListUsers()
+	pagination := utils.GetPaginationParams(c)
+	users, total, err := uh.iuserService.ListUsers(pagination)
 	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK, utils.GetPaginatedResponse(users, pagination.Page, pagination.Limit, total))
 }
 
 func (uh *UserHandler) DeleteUser(c *gin.Context) {
