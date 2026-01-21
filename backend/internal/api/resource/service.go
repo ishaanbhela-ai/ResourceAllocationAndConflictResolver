@@ -71,10 +71,11 @@ func (s *ResourceService) GetAllResources(typeID *int, location string, props ma
 func (s *ResourceService) UpdateResource(res *Resource) error {
 	_, err := s.Repo.GetResourceTypeByID(res.TypeID)
 	if err != nil {
-		if err == utils.ErrNotFound {
-			return err
-		}
 		return err
+		// if err == utils.ErrNotFound {
+		// 	return err
+		// }
+		// return err
 	}
 	return s.Repo.UpdateResource(res)
 }
@@ -105,7 +106,7 @@ func (s *ResourceService) DeleteResourceType(id int) error {
 		return err
 	}
 	if count > 0 {
-		return utils.ErrConflict // "Cannot delete: assigned to resources"
+		return fmt.Errorf("%w: cannot delete resource type, it is assigned to a specific resource", utils.ErrConflict) // "Cannot delete: assigned to resources"
 	}
 	return s.Repo.DeleteResourceType(id)
 }

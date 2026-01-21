@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ResourceAllocator/internal/api/booking"
 	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/routes"
 	"ResourceAllocator/internal/api/user"
@@ -37,9 +38,17 @@ func main() {
 	resourceService := resource.NewResourceService(resourceRepo)
 	resourceHandler := resource.NewResourceHandler(resourceService)
 
+	// ============================================
+	// BOOKING FEATURE - Dependency Injection Chain
+	// ============================================
+	bookingRepo := repository.NewBookingRepository(db.GetConnection())
+	bookingService := booking.NewBookingService(bookingRepo)
+	bookingHandler := booking.NewBookingHandler(bookingService)
+
 	appHandlers := routes.NewHandlers(
 		userHandler,
 		resourceHandler,
+		bookingHandler,
 	)
 
 	router := routes.SetupRoutes(appHandlers)

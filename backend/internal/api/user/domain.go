@@ -17,8 +17,8 @@ type User struct {
 	UUID       string         `json:"uuid" gorm:"primaryKey;type:varchar(36)"`
 	Name       string         `json:"name" binding:"required"`
 	DOB        time.Time      `json:"dob" binding:"required"`
-	EmployeeID string         `json:"employee_id" binding:"required"`
-	Role       Role           `json:"role" binding:"required,oneof=ADMIN EMPLOYEE"`
+	EmployeeID string         `json:"employee_id" binding:"required" gorm:"unique"`
+	Role       Role           `json:"role" binding:"required,oneof=ADMIN Employee"`
 	Email      string         `json:"email" binding:"required,email" gorm:"unique;not null"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`

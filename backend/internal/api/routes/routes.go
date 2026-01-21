@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"ResourceAllocator/internal/api/booking"
 	"ResourceAllocator/internal/api/middleware"
 	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/user"
@@ -13,13 +14,15 @@ import (
 type Handlers struct {
 	UserHandler     *user.UserHandler
 	ResourceHandler *resource.ResourceHandler
+	BookingHandler  *booking.BookingHandler
 }
 
 // NewHandlers builds the Handlers container (called from main.go).
-func NewHandlers(userHandler *user.UserHandler, resourceHandler *resource.ResourceHandler) *Handlers {
+func NewHandlers(userHandler *user.UserHandler, resourceHandler *resource.ResourceHandler, bookingHandler *booking.BookingHandler) *Handlers {
 	return &Handlers{
 		UserHandler:     userHandler,
 		ResourceHandler: resourceHandler,
+		BookingHandler:  bookingHandler,
 	}
 }
 
@@ -37,7 +40,7 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 		auth := api.Group("/auth")
 		{
 			// Admin login - NOT protected
-			auth.POST("/admin", h.UserHandler.Login) // For Admin to Login
+			auth.POST("/login", h.UserHandler.Login) // For Login
 		}
 	}
 
@@ -53,6 +56,11 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 
 		// User Management
 		protected.GET("/user", h.UserHandler.GetUser)
+
+		// [NEW] Bookings (User)
+		protected.POST("/bookings", h.BookingHandler.CreateBooking)
+		protected.GET("/bookings", h.BookingHandler.ListMyBookings)
+		protected.PATCH("/bookings/:id/cancel", h.BookingHandler.CancelBooking)
 	}
 
 	// ADMIN ROUTES
@@ -73,6 +81,10 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 		admin.DELETE("/resources/:id", h.ResourceHandler.DeleteResource)           // For Admins to delete a resource
 		admin.DELETE("/resources_types/:id", h.ResourceHandler.DeleteResourceType) // For Admins to delete a resource
 		admin.POST("/resource_types", h.ResourceHandler.CreateResourceType)        // For Admins to create a new resource type
+
+		// [NEW] Bookings (Admin)
+		admin.GET("/bookings", h.BookingHandler.ListAllBookings)
+		admin.PATCH("/bookings/:id/status", h.BookingHandler.UpdateBookingStatus)
 	}
 
 	return router

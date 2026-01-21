@@ -35,7 +35,7 @@ func (s *UserService) Login(email, password string) (*LoginResponse, error) {
 	userWithPass, err := s.userRepo.GetUserByEmail(email)
 
 	if err != nil {
-		return nil, utils.ErrInvalidCredentials
+		return nil, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(userWithPass.Password), []byte(password))
