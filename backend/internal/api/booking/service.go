@@ -17,6 +17,7 @@ type IBookingRepo interface {
 	GetBookingsByUserID(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]Booking, error)
+	CheckInBooking(bookingId int) error
 }
 
 type BookingService struct {
@@ -236,4 +237,26 @@ func (s *BookingService) mapToSummary(bookings []Booking) []BookingSummary {
 		}
 	}
 	return summaries
+}
+
+func (s *BookingService) CheckInBooking(bookingId int, userId string) error {
+	booking, err := s.BookingRepo.GetBookingByID(bookingId)
+
+	if err != nil {
+		return err
+	}
+
+	if booking.UserID != userId {
+		return fmt.Errorf("%w: Unauthorized Action", utils.ErrUnauthorized)
+	}
+
+	if booking.Status != BookingStatus(StatusApproved) {
+		return fmt.Errorf("%w: Cannot checkin unapproved/ released bookings", utils.ErrInvalidInput)
+	}
+
+	if booking.StartTime.After(time.Now()) {
+		return fmt.Errorf("%w: Checkin can only be done within 15 minutes of start time", utils.ErrInvalidInput)
+	}
+
+	return s.BookingRepo.CheckInBooking(bookingId)
 }

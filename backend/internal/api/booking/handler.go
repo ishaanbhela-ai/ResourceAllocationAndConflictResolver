@@ -15,6 +15,7 @@ type IBookingService interface {
 	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error)
 	CancelBooking(id int, userID string) error
 	UpdateStatus(id int, req *BookingStatusUpdate, approverID string) error
+	CheckInBooking(bookingId int, userId string) error
 }
 
 type BookingHandler struct {
@@ -28,12 +29,12 @@ func NewBookingHandler(service IBookingService) *BookingHandler {
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	userID, exists := c.Get("userUUID")
 	if !exists {
-		utils.Error(c, http.StatusUnauthorized, "User identity missing")
+		utils.Error(c, http.StatusUnauthorized, "user identity missing")
 		return
 	}
 	var req BookingCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid booking request")
+		utils.Error(c, http.StatusBadRequest, "invalid booking request")
 		return
 	}
 	booking, err := h.service.CreateBooking(&req, userID.(string))
@@ -47,7 +48,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 func (h *BookingHandler) ListMyBookings(c *gin.Context) {
 	userID, exists := c.Get("userUUID")
 	if !exists {
-		utils.Error(c, http.StatusUnauthorized, "User identity missing")
+		utils.Error(c, http.StatusUnauthorized, "user identity missing")
 		return
 	}
 
@@ -97,42 +98,63 @@ func (h *BookingHandler) ListAllBookings(c *gin.Context) {
 func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	userID, exists := c.Get("userUUID")
 	if !exists {
-		utils.Error(c, http.StatusUnauthorized, "User identity missing")
+		utils.Error(c, http.StatusUnauthorized, "user identity missing")
 		return
 	}
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid booking ID")
+		utils.Error(c, http.StatusBadRequest, "invalid booking ID")
 		return
 	}
 	if err := h.service.CancelBooking(id, userID.(string)); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Booking cancelled successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "booking cancelled successfully"})
 }
 
 func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
 	approverID, exists := c.Get("userUUID")
 	if !exists {
-		utils.Error(c, http.StatusUnauthorized, "User identity missing")
+		utils.Error(c, http.StatusUnauthorized, "user identity missing")
 		return
 	}
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid booking ID")
+		utils.Error(c, http.StatusBadRequest, "invalid booking ID")
 		return
 	}
 	var req BookingStatusUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid status update request")
+		utils.Error(c, http.StatusBadRequest, "invalid status update request")
 		return
 	}
 	if err := h.service.UpdateStatus(id, &req, approverID.(string)); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Booking status updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "booking status updated successfully"})
+}
+
+func (h *BookingHandler) CheckIn(c *gin.Context) {
+	userId, exists := c.Get("id")
+	if !exists {
+		utils.Error(c, http.StatusBadRequest, "user identity missing")
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		utils.Error(c, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+
+	if err := h.service.CheckInBooking(id, userId.(string)); err != nil {
+		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "successfully checked in booking. enjoy!"})
 }
