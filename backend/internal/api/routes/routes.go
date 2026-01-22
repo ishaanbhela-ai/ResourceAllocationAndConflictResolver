@@ -56,6 +56,7 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 
 		// User Management
 		protected.GET("/user", h.UserHandler.GetUser)
+		protected.PATCH("/user/password", h.UserHandler.UpdatePassword) // [NEW] Change Password
 
 		// [NEW] Bookings (User)
 		protected.POST("/bookings", h.BookingHandler.CreateBooking)
@@ -75,9 +76,9 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 		admin.PUT("/user/:uuid", h.UserHandler.UpdateUser)
 
 		// Resource Management
-		admin.POST("/resources", h.ResourceHandler.CreateResource)                 // For Admins to create a new resource
-		admin.PUT("/resources/:id", h.ResourceHandler.UpdateResource)              // For Admins to update a resource
-		admin.PUT("/resource_types/:id", h.ResourceHandler.UpdateResourceType)     // For Admins to update a resource
+		admin.POST("/resources", h.ResourceHandler.CreateResource)    // For Admins to create a new resource
+		admin.PUT("/resources/:id", h.ResourceHandler.UpdateResource) // For Admins to update a resource
+		// admin.PUT("/resource_types/:id", h.ResourceHandler.UpdateResourceType)     // For Admins to update a resource
 		admin.DELETE("/resources/:id", h.ResourceHandler.DeleteResource)           // For Admins to delete a resource
 		admin.DELETE("/resources_types/:id", h.ResourceHandler.DeleteResourceType) // For Admins to delete a resource
 		admin.POST("/resource_types", h.ResourceHandler.CreateResourceType)        // For Admins to create a new resource type

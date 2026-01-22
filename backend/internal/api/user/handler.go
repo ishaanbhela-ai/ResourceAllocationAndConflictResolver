@@ -7,13 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// 1. Service Interface
 type IUserService interface {
 	Login(email, password string) (*LoginResponse, error)
-	CreateNewUser(user *UserCreate) error
+	CreateNewUser(user *CreateUser) error
 	UpdateUser(user *User) (*User, error)
 	GetUserByUUID(uuid string) (*User, error)
 	ListUsers(pagination utils.PaginationQuery) ([]UserSummary, int64, error)
 	DeleteUser(uuid string) error
+	ChangePassword(userID string, req ChangePasswordRequest) error
 }
 
 type UserHandler struct {
@@ -32,7 +34,6 @@ func (uh *UserHandler) Login(c *gin.Context) {
 	}
 	loginRes, err := uh.iuserService.Login(loginReq.Email, loginReq.Password)
 	if err != nil {
-		// Use the mapper!
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
@@ -40,17 +41,37 @@ func (uh *UserHandler) Login(c *gin.Context) {
 }
 
 func (uh *UserHandler) CreateNewUser(c *gin.Context) {
-	var userReq UserCreate
+	var userReq CreateUser
 	if err := c.ShouldBindJSON(&userReq); err != nil {
 		utils.Error(c, http.StatusBadRequest, "Invalid user")
 		return
 	}
 	if err := uh.iuserService.CreateNewUser(&userReq); err != nil {
-		// Removed manual string checks. The mapper handles ErrConflict!
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
 	c.JSON(http.StatusCreated, userReq.User)
+}
+
+func (uh *UserHandler) UpdatePassword(c *gin.Context) {
+	userID, exists := c.Get("userUUID")
+	if !exists {
+		utils.Error(c, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var req ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, http.StatusBadRequest, "Invalid request")
+		return
+	}
+
+	if err := uh.iuserService.ChangePassword(userID.(string), req); err != nil {
+		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
 
 func (uh *UserHandler) UpdateUser(c *gin.Context) {

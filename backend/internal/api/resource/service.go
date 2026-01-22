@@ -3,12 +3,13 @@ package resource
 import (
 	"ResourceAllocator/internal/api/utils"
 	"fmt"
+	"time"
 )
 
 type ResourceRepository interface {
 	GetResourceByID(id int) (*Resource, error)
-	GetAllResources(typeID *int, location string, props map[string]string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error)
-	GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceType, int64, error)
+	GetAllResources(typeID *int, location string, props map[string]string, startTime, endTime *string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error)
+	GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceTypeSummary, int64, error)
 	GetResourceTypeByID(id int) (*ResourceType, error)
 
 	CreateResource(res *Resource) error
@@ -48,7 +49,7 @@ func (s *ResourceService) GetResourceByID(id int) (*Resource, error) {
 	return s.Repo.GetResourceByID(id)
 }
 
-func (s *ResourceService) GetAllResources(typeID *int, location string, props map[string]string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error) {
+func (s *ResourceService) GetAllResources(typeID *int, location string, props map[string]string, startTime, endTime *string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error) {
 	// VALIDATION LOGIC
 	if len(props) > 0 {
 		if typeID == nil {
@@ -65,18 +66,49 @@ func (s *ResourceService) GetAllResources(typeID *int, location string, props ma
 			}
 		}
 	}
-	return s.Repo.GetAllResources(typeID, location, props, pagination)
+
+	// [NEW] Temporal Filter Validation
+	if startTime != nil && endTime != nil && *startTime != "" && *endTime != "" {
+		start, err := time.Parse(time.RFC3339, *startTime)
+		if err != nil {
+			return nil, 0, fmt.Errorf("%w: invalid start_time format (expected RFC3339)", utils.ErrInvalidInput)
+		}
+		end, err := time.Parse(time.RFC3339, *endTime)
+		if err != nil {
+			return nil, 0, fmt.Errorf("%w: invalid end_time format (expected RFC3339)", utils.ErrInvalidInput)
+		}
+
+		if end.Before(start) {
+			return nil, 0, fmt.Errorf("%w: end_time must be after start_time", utils.ErrInvalidInput)
+		}
+
+		// 9-5 and Holiday Checks
+		if err := utils.IsWorkingHours(start, end); err != nil {
+			return nil, 0, fmt.Errorf("%w: %v", utils.ErrInvalidInput, err)
+		}
+		if err := utils.IsHoliday(start); err != nil {
+			return nil, 0, fmt.Errorf("%w: %v", utils.ErrInvalidInput, err)
+		}
+	}
+
+	return s.Repo.GetAllResources(typeID, location, props, startTime, endTime, pagination)
 }
 
 func (s *ResourceService) UpdateResource(res *Resource) error {
-	_, err := s.Repo.GetResourceTypeByID(res.TypeID)
+	// if err == utils.ErrNotFound {
+	// 	return err
+	// }
+	// return err
+	resType, err := s.Repo.GetResourceTypeByID(res.TypeID)
 	if err != nil {
 		return err
-		// if err == utils.ErrNotFound {
-		// 	return err
-		// }
-		// return err
 	}
+
+	// 2. [NEW] Validate Properties
+	if err := validateProperties(resType.SchemaDefinition, res.Properties); err != nil {
+		return err
+	}
+
 	return s.Repo.UpdateResource(res)
 }
 
@@ -88,7 +120,7 @@ func (s *ResourceService) CreateResourceType(resType *ResourceType) error {
 	return s.Repo.CreateResourceType(resType)
 }
 
-func (s *ResourceService) GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceType, int64, error) {
+func (s *ResourceService) GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceTypeSummary, int64, error) {
 	return s.Repo.GetAllResourceTypes(pagination)
 }
 
@@ -117,6 +149,13 @@ func validateProperties(schema map[string]string, props map[string]interface{}) 
 			// Return typed error!
 			// We use fmt.Errorf to Wrap the sentinel with details
 			return fmt.Errorf("%w: missing required property '%s'", utils.ErrInvalidInput, key)
+		}
+	}
+
+	// Check for extra fields
+	for key := range props {
+		if _, exists := schema[key]; !exists {
+			return fmt.Errorf("%w: unknown property '%s'", utils.ErrInvalidInput, key)
 		}
 	}
 	return nil

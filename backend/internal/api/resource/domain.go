@@ -15,9 +15,13 @@ type Resource struct {
 	UpdatedAt        time.Time              `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
+type ResourceTypeSummary struct {
+	ID   int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Type string `json:"type" binding:"required" gorm:"unique"`
+}
+
 type ResourceType struct {
-	ID               int               `json:"id" gorm:"primaryKey;autoIncrement"`
-	Type             string            `json:"type" binding:"required"`
+	ResourceTypeSummary
 	SchemaDefinition map[string]string `json:"schema_definition" gorm:"type:jsonb;serializer:json"`
 }
 

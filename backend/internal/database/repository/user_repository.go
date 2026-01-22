@@ -18,8 +18,8 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) GetUserByEmail(email string) (*user.UserCreate, error) {
-	var u user.UserCreate
+func (r *UserRepository) GetUserByEmail(email string) (*user.CreateUser, error) {
+	var u user.CreateUser
 	result := r.db.Where("email = ?", email).First(&u)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -42,12 +42,12 @@ func (r *UserRepository) GetUserByUUID(uuid string) (*user.User, error) {
 	return &u, nil
 }
 
-func (r *UserRepository) CreateNewUser(u *user.UserCreate) error {
+func (r *UserRepository) CreateNewUser(u *user.CreateUser) error {
 	result := r.db.Table("users").Create(u)
 
 	if result.Error != nil {
 		if utils.IsDuplicateKeyError(result.Error) {
-			return fmt.Errorf("%w: email aready in use", utils.ErrConflict)
+			return fmt.Errorf("%w: email/ employeeID aready in use", utils.ErrConflict)
 		}
 		return result.Error
 	}
@@ -96,4 +96,19 @@ func (r *UserRepository) UpdateUser(u *user.User) error {
 		return err
 	}
 	return nil
+}
+
+func (r *UserRepository) GetAuthUserByUUID(uuid string) (*user.CreateUser, error) {
+	var u user.CreateUser
+	if err := r.db.Table("users").Where("uuid = ?", uuid).First(&u).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("%w: user not found", utils.ErrNotFound)
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (r *UserRepository) UpdatePassword(uuid string, password string) error {
+	return r.db.Table("users").Where("uuid = ?", uuid).Update("password", password).Error
 }

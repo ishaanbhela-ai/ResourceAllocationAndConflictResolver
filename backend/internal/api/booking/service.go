@@ -27,34 +27,13 @@ func NewBookingService(repo IBookingRepo) *BookingService {
 	return &BookingService{BookingRepo: repo}
 }
 
-var publicHolidays = map[string]string{
-	"2026-01-26": "Republic Day",
-	"2026-08-15": "Independence Day",
-	"2026-10-02": "Gandhi Jayanti",
-	"2026-12-25": "Christmas",
-}
-
-func isHoliday(t time.Time) error {
-	// 1. Weekend Check
-	if t.Weekday() == time.Saturday || t.Weekday() == time.Sunday {
-		return errors.New("bookings are not allowed on weekends")
-	}
-	// 2. Public Holiday Check
-	dateStr := t.Format("2006-01-02")
-	if _, exists := publicHolidays[dateStr]; exists {
-		return errors.New("bookings are not allowed on public holidays")
-	}
-	return nil
-}
-
 // Helper: Check if a specific slot is valid (Time, History, Weekend)
 func isValidSlot(start time.Time, duration time.Duration) error {
 	end := start.Add(duration)
-	// 9AM - 5PM check
-	if start.Hour() < 9 || start.Hour() > 17 || end.Hour() > 17 || end.Hour() < 9 {
-		return errors.New("outside working hours")
+	if err := utils.IsWorkingHours(start, end); err != nil {
+		return err
 	}
-	return isHoliday(start)
+	return utils.IsHoliday(start)
 }
 
 // Helper: Find next gap
@@ -111,12 +90,12 @@ func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Book
 	}
 
 	// 9AM - 5PM check
-	if req.StartTime.Hour() < 9 || req.StartTime.Hour() > 17 || req.EndTime.Hour() > 17 || req.EndTime.Hour() < 9 {
-		return nil, fmt.Errorf("%w: bookings only allowed between 9AM and 5PM", utils.ErrInvalidInput)
+	if err := utils.IsWorkingHours(req.StartTime, req.EndTime); err != nil {
+		return nil, fmt.Errorf("%w: %v", utils.ErrInvalidInput, err)
 	}
 
 	// Holiday Logic
-	if err := isHoliday(req.StartTime); err != nil {
+	if err := utils.IsHoliday(req.StartTime); err != nil {
 		return nil, fmt.Errorf("%w: %v", utils.ErrInvalidInput, err)
 	}
 

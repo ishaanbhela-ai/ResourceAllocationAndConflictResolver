@@ -39,7 +39,7 @@ func (r *ResourceRepository) GetResourceByID(id int) (*resource.Resource, error)
 	return &res, nil
 }
 
-func (r *ResourceRepository) GetAllResources(typeID *int, location string, props map[string]string, pagination utils.PaginationQuery) ([]resource.ResourceSummary, int64, error) {
+func (r *ResourceRepository) GetAllResources(typeID *int, location string, props map[string]string, startTime, endTime *string, pagination utils.PaginationQuery) ([]resource.ResourceSummary, int64, error) {
 	var resources []resource.ResourceSummary
 	var total int64
 	query := r.db.Model(&resource.Resource{})
@@ -54,6 +54,20 @@ func (r *ResourceRepository) GetAllResources(typeID *int, location string, props
 	for key, value := range props {
 		query = query.Where("properties::jsonb ->> ? = ?", key, value)
 	}
+
+	// 3. Temporal Availability Filter (NOT EXISTS)
+	// ONLY if both start and end times are provided
+	if startTime != nil && endTime != nil && *startTime != "" && *endTime != "" {
+		query = query.Where(`
+			NOT EXISTS (
+				SELECT 1 FROM bookings b
+				WHERE b.resource_id = resources.id
+				AND b.status = 'APPROVED'
+				AND (b.start_time < ? AND b.end_time > ?)
+			)
+		`, *endTime, *startTime)
+	}
+
 	// Count Total
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -99,11 +113,11 @@ func (r *ResourceRepository) CreateResourceType(resType *resource.ResourceType) 
 	return nil
 }
 
-func (r *ResourceRepository) GetAllResourceTypes(pagination utils.PaginationQuery) ([]resource.ResourceType, int64, error) {
-	var types []resource.ResourceType
+func (r *ResourceRepository) GetAllResourceTypes(pagination utils.PaginationQuery) ([]resource.ResourceTypeSummary, int64, error) {
+	var types []resource.ResourceTypeSummary
 	var total int64
 
-	query := r.db.Model(&resource.ResourceType{})
+	query := r.db.Table("resource_types").Model(&resource.ResourceTypeSummary{})
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}

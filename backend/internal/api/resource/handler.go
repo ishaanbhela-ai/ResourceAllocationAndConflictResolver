@@ -10,8 +10,8 @@ import (
 
 type IResourceService interface {
 	GetResourceByID(id int) (*Resource, error)
-	GetAllResources(typeID *int, location string, props map[string]string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error)
-	GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceType, int64, error)
+	GetAllResources(typeID *int, location string, props map[string]string, startTime, endTime *string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error)
+	GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceTypeSummary, int64, error)
 	GetResourceTypeByID(id int) (*ResourceType, error)
 
 	CreateResource(res *Resource) error
@@ -35,7 +35,7 @@ func NewResourceHandler(iservice IResourceService) *ResourceHandler {
 func (h *ResourceHandler) CreateResource(c *gin.Context) {
 	var res Resource
 	if err := c.ShouldBindJSON(&res); err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource")
+		utils.Error(c, http.StatusBadRequest, "invalid resource")
 		return
 	}
 	if err := h.iservice.CreateResource(&res); err != nil {
@@ -49,7 +49,7 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource ID")
+		utils.Error(c, http.StatusBadRequest, "invalid resource ID")
 		return
 	}
 	res, err := h.iservice.GetResourceByID(id)
@@ -69,7 +69,7 @@ func (h *ResourceHandler) ListResources(c *gin.Context) {
 	if tID := c.Query("type_id"); tID != "" {
 		id, err := strconv.Atoi(tID)
 		if err != nil {
-			utils.Error(c, http.StatusBadRequest, "Invalid type_id")
+			utils.Error(c, http.StatusBadRequest, "invalid type_id")
 			return
 		}
 		typeID = &id
@@ -83,8 +83,18 @@ func (h *ResourceHandler) ListResources(c *gin.Context) {
 			props[key[5:]] = values[0]
 		}
 	}
-	// 4. Call Service
-	resources, total, err := h.iservice.GetAllResources(typeID, location, props, pagination)
+
+	// 4. Temporal Filter
+	var startTime, endTime *string
+	if st := c.Query("start_time"); st != "" {
+		startTime = &st
+	}
+	if et := c.Query("end_time"); et != "" {
+		endTime = &et
+	}
+
+	// 5. Call Service
+	resources, total, err := h.iservice.GetAllResources(typeID, location, props, startTime, endTime, pagination)
 	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
@@ -96,12 +106,12 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource ID")
+		utils.Error(c, http.StatusBadRequest, "invalid resource ID")
 		return
 	}
 	var res Resource
 	if err := c.ShouldBindJSON(&res); err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource")
+		utils.Error(c, http.StatusBadRequest, "invalid resource")
 		return
 	}
 	res.ID = id
@@ -116,20 +126,20 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource ID")
+		utils.Error(c, http.StatusBadRequest, "invalid resource ID")
 		return
 	}
 	if err := h.iservice.DeleteResource(id); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Resource deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "resource deleted successfully"})
 }
 
 func (h *ResourceHandler) CreateResourceType(c *gin.Context) {
 	var resType ResourceType
 	if err := c.ShouldBindJSON(&resType); err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource type")
+		utils.Error(c, http.StatusBadRequest, "invalid resource type")
 		return
 	}
 	if err := h.iservice.CreateResourceType(&resType); err != nil {
@@ -153,7 +163,7 @@ func (h *ResourceHandler) GetResourceType(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource type ID")
+		utils.Error(c, http.StatusBadRequest, "invalid resource type ID")
 		return
 	}
 	resType, err := h.iservice.GetResourceTypeByID(id)
@@ -168,12 +178,12 @@ func (h *ResourceHandler) UpdateResourceType(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource type ID")
+		utils.Error(c, http.StatusBadRequest, "invalid resource type ID")
 		return
 	}
 	var resType ResourceType
 	if err := c.ShouldBindJSON(&resType); err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource type")
+		utils.Error(c, http.StatusBadRequest, "invalid resource type")
 		return
 	}
 	resType.ID = id
@@ -188,12 +198,12 @@ func (h *ResourceHandler) DeleteResourceType(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid resource type ID")
+		utils.Error(c, http.StatusBadRequest, "invalid resource type ID")
 		return
 	}
 	if err := h.iservice.DeleteResourceType(id); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Resource type deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "resource type deleted successfully"})
 }
