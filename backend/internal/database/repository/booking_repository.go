@@ -23,7 +23,7 @@ func (r *BookingRepository) CreateBooking(b *booking.Booking) error {
 
 func (r *BookingRepository) GetBookingByID(id int) (*booking.Booking, error) {
 	var b booking.Booking
-	if err := r.db.First(&b, id).Error; err != nil {
+	if err := r.db.Preload("Resource").Preload("User").First(&b, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("%w: booking not found", utils.ErrNotFound)
 		}
@@ -99,7 +99,7 @@ func (r *BookingRepository) GetBookingsByUserID(userID string, filters map[strin
 	var bookings []booking.Booking
 	var total int64
 
-	query := r.db.Model(&booking.Booking{}).Where("user_id = ?", userID)
+	query := r.db.Model(&booking.Booking{}).Preload("Resource").Preload("User").Where("user_id = ?", userID)
 
 	// Apply Filters (Status, ResourceID)
 	if val, ok := filters["status"]; ok && val != "" {
@@ -128,7 +128,7 @@ func (r *BookingRepository) GetAllBookings(filters map[string]interface{}, pagin
 	var bookings []booking.Booking
 	var total int64
 
-	query := r.db.Model(&booking.Booking{})
+	query := r.db.Model(&booking.Booking{}).Preload("Resource").Preload("User")
 
 	// Apply Filters
 	for key, value := range filters {
@@ -154,7 +154,7 @@ func (r *BookingRepository) GetAllBookings(filters map[string]interface{}, pagin
 
 func (r *BookingRepository) GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]booking.Booking, error) {
 	var bookings []booking.Booking
-	err := r.db.Where("resource_id = ? AND status = ? AND end_time > ?", resourceID, booking.StatusApproved, startTime).
+	err := r.db.Preload("Resource").Preload("User").Where("resource_id = ? AND status = ? AND end_time > ?", resourceID, booking.StatusApproved, startTime).
 		Order("start_time asc").
 		Find(&bookings).Error
 	return bookings, err

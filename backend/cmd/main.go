@@ -8,6 +8,7 @@ import (
 	"ResourceAllocator/internal/database"
 	"ResourceAllocator/internal/database/repository"
 	"log"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -18,6 +19,14 @@ func main() {
 	if err != nil {
 		log.Println("No .env file found or error loading it. Relying on System Environment Variables.")
 	}
+
+	// Enforce IST Timezone
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		log.Fatalf("Failed to load timezone Asia/Kolkata: %v", err)
+	}
+	time.Local = loc
+	log.Println("Global timezone set to Asia/Kolkata (IST)")
 
 	db, err := database.NewDB()
 	if err != nil {
