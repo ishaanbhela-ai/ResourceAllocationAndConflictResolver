@@ -71,23 +71,6 @@ go run cmd/main.go
 
 ---
 
-## 📡 API Documentation
-
-### **Auth & Users**
-*   `POST /api/auth/login` - Login & Retrieve Token
-*   `GET /api/user` - Get My Profile
-*   `POST /api/bookings` - Create Booking
-    *   *Payload:* `{"resource_id": 1, "start_time": "2026-01-25T10:00:00Z", "end_time": "2026-01-25T11:00:00Z", "purpose": "Meeting"}`
-*   `PATCH /api/bookings/:id/checkin` - Check-in (Must be within 15 mins of start)
-*   `PATCH /api/bookings/:id/cancel` - Cancel Booking
-
-### **Admin Endpoints**
-*   `POST /api/admin/resources` - Add new Resource
-*   `POST /api/admin/user` - Create User
-*   `PATCH /api/admin/bookings/:id/status` - Force Approve/Reject
-
----
-
 ## 🧠 Architecture Highlights
 
 *   **Layered Architecture:** Strict separation of concerns:
