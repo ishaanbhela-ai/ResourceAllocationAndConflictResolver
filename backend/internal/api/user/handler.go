@@ -32,6 +32,7 @@ func (uh *UserHandler) Login(c *gin.Context) {
 		utils.Error(c, http.StatusBadRequest, "Invalid login request")
 		return
 	}
+	loginReq.Sanitize()
 	loginRes, err := uh.iuserService.Login(loginReq.Email, loginReq.Password)
 	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
@@ -46,6 +47,7 @@ func (uh *UserHandler) CreateNewUser(c *gin.Context) {
 		utils.Error(c, http.StatusBadRequest, "Invalid user")
 		return
 	}
+	userReq.Sanitize()
 	if err := uh.iuserService.CreateNewUser(&userReq); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
@@ -81,6 +83,7 @@ func (uh *UserHandler) UpdateUser(c *gin.Context) {
 		utils.Error(c, http.StatusBadRequest, "Invalid user data")
 		return
 	}
+	user.Sanitize()
 	user.UUID = targetUUID
 	updatedUser, err := uh.iuserService.UpdateUser(&user)
 	if err != nil {

@@ -38,6 +38,7 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 		utils.Error(c, http.StatusBadRequest, "invalid resource")
 		return
 	}
+	res.Sanitize()
 	if err := h.iservice.CreateResource(&res); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
@@ -114,6 +115,7 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 		utils.Error(c, http.StatusBadRequest, "invalid resource")
 		return
 	}
+	res.Sanitize()
 	res.ID = id
 	if err := h.iservice.UpdateResource(&res); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
@@ -142,6 +144,7 @@ func (h *ResourceHandler) CreateResourceType(c *gin.Context) {
 		utils.Error(c, http.StatusBadRequest, "invalid resource type")
 		return
 	}
+	resType.Sanitize()
 	if err := h.iservice.CreateResourceType(&resType); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
@@ -186,6 +189,7 @@ func (h *ResourceHandler) UpdateResourceType(c *gin.Context) {
 		utils.Error(c, http.StatusBadRequest, "invalid resource type")
 		return
 	}
+	resType.Sanitize()
 	resType.ID = id
 	if err := h.iservice.UpdateResourceType(&resType); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())

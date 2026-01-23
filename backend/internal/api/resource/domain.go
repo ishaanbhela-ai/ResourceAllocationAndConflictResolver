@@ -1,6 +1,9 @@
 package resource
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type Resource struct {
 	ID               int                    `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -31,4 +34,13 @@ type ResourceSummary struct {
 	TypeID   int    `json:"type_id"`
 	Location string `json:"location"`
 	IsActive bool   `json:"is_active"`
+}
+
+func (r *Resource) Sanitize() {
+	r.Name = strings.TrimSpace(r.Name)
+	r.Location = strings.TrimSpace(r.Location)
+	r.Description = strings.TrimSpace(r.Description)
+}
+func (rt *ResourceType) Sanitize() {
+	rt.Type = strings.TrimSpace(rt.Type)
 }
