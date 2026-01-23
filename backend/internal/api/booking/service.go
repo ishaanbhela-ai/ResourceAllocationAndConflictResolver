@@ -18,6 +18,7 @@ type IBookingRepo interface {
 	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]Booking, error)
 	CheckInBooking(bookingId int) error
+	ReleaseUncheckedBookings(cutoffTime time.Time) error
 }
 
 type BookingService struct {
@@ -37,46 +38,56 @@ func isValidSlot(start time.Time, duration time.Duration) error {
 	return utils.IsHoliday(start)
 }
 
-// Helper: Find next gap
-func (s *BookingService) findNextAvailableSlot(resourceID int, initialStart time.Time, duration time.Duration) (time.Time, error) {
+// Helper: Find next gaps (plural)
+func (s *BookingService) findNextAvailableSlots(resourceID int, initialStart time.Time, duration time.Duration, limit int) ([]time.Time, error) {
 	bookings, err := s.BookingRepo.GetFutureApprovedBookings(resourceID, initialStart)
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
 
+	var suggestions []time.Time
 	candidate := initialStart
-	// Safety limit: look ahead max 7 days to avoid infinite/long loops
-	limit := initialStart.AddDate(0, 0, 7)
 
-	for {
-		if candidate.After(limit) {
-			return time.Time{}, errors.New("no slots available in next 7 days")
+	// Safety limit: look ahead max 7 days
+	endTimeLimit := initialStart.AddDate(0, 0, 7)
+
+	for len(suggestions) < limit {
+		if candidate.After(endTimeLimit) {
+			break
 		}
 
 		// 1. Check strict validity (Hours + Holidays)
 		if err := isValidSlot(candidate, duration); err != nil {
 			// If outside hours or holiday, advance to next 9AM
-			// Simplistic advance: if past 5PM today, go to tomorrow 9AM.
-			// If holiday, go to tomorrow 9AM.
 			candidate = time.Date(candidate.Year(), candidate.Month(), candidate.Day(), 9, 0, 0, 0, candidate.Location()).AddDate(0, 0, 1)
 			continue
 		}
 
-		// 2. Check Overlap with Existing Future Bookings
+		// 2. Check Overlap
 		isOverlapping := false
 		for _, b := range bookings {
 			// If candidate End > Booking Start AND candidate Start < Booking End
 			if candidate.Add(duration).After(b.StartTime) && candidate.Before(b.EndTime) {
 				isOverlapping = true
-				candidate = b.EndTime // Jump to end of conflict
+				// Jump to end of conflict
+				// But we also need to ensure that the new candidate is top-of-hour if that's a rule
+				// For simplicity, let's jump to the booking's EndTime (which should be hourly aligned)
+				candidate = b.EndTime
 				break
 			}
 		}
 
 		if !isOverlapping {
-			return candidate, nil // Found it!
+			suggestions = append(suggestions, candidate)
+			// Move to next hour to find next option
+			candidate = candidate.Add(1 * time.Hour)
 		}
 	}
+
+	if len(suggestions) == 0 {
+		return nil, errors.New("no slots available in next 7 days")
+	}
+	return suggestions, nil
 }
 
 func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*BookingSummary, error) {
@@ -85,8 +96,14 @@ func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Book
 		return nil, fmt.Errorf("%w: end time must be after start time", utils.ErrInvalidInput)
 	}
 
+	// [NEW] Strict Whole-Hour Validation
+	if req.StartTime.Minute() != 0 || req.StartTime.Second() != 0 || req.StartTime.Nanosecond() != 0 {
+		return nil, fmt.Errorf("%w: bookings must start exactly at the top of the hour (e.g. 10:00:00)", utils.ErrInvalidInput)
+	}
+
 	duration := req.EndTime.Sub(req.StartTime)
-	if duration.Minutes() < 60 || int(duration.Minutes())%60 != 0 {
+	// Make sure duration is a multiple of 60 minutes
+	if int(duration.Minutes())%60 != 0 {
 		return nil, fmt.Errorf("%w: booking duration must be multiples of 1 hour", utils.ErrInvalidInput)
 	}
 
@@ -106,10 +123,15 @@ func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Book
 		return nil, err
 	}
 	if hasOverlap {
-		nextSlot, err := s.findNextAvailableSlot(req.ResourceID, req.StartTime, duration)
+		slots, err := s.findNextAvailableSlots(req.ResourceID, req.StartTime, duration, 4)
 		msg := "slot unavailable"
-		if err == nil {
-			msg = fmt.Sprintf("slot unavailable. Next possible slot starts at %s", nextSlot.Format("2006-01-02 15:04"))
+		if err == nil && len(slots) > 0 {
+			// Format slots
+			var slotStrings []string
+			for _, slot := range slots {
+				slotStrings = append(slotStrings, slot.Format("15:04"))
+			}
+			msg = fmt.Sprintf("slot unavailable. Suggested slots: %v", slotStrings)
 		}
 		return nil, fmt.Errorf("%w: %s", utils.ErrConflict, msg)
 	}
@@ -258,5 +280,17 @@ func (s *BookingService) CheckInBooking(bookingId int, userId string) error {
 		return fmt.Errorf("%w: Checkin can only be done within 15 minutes of start time", utils.ErrInvalidInput)
 	}
 
+	if time.Now().After(booking.StartTime.Add(15 * time.Minute)) {
+		return fmt.Errorf("%w: Checkin time expired", utils.ErrUnauthorized)
+	}
+
 	return s.BookingRepo.CheckInBooking(bookingId)
+}
+
+// RunAutoReleaseJob finds approved bookings started >15 mins ago that haven't been checked in
+// and releases them. Run this via a background ticker.
+func (s *BookingService) RunAutoReleaseJob() error {
+	// 15 minutes ago
+	cutoffTime := time.Now().Add(-15 * time.Minute)
+	return s.BookingRepo.ReleaseUncheckedBookings(cutoffTime)
 }

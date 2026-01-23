@@ -166,3 +166,20 @@ func (r *BookingRepository) CheckInBooking(bookingId int) error {
 
 	return err
 }
+
+// ReleaseUncheckedBookings: Updates bookings to RELEASED if they are APPROVED and start_time < cutoffTime.
+func (r *BookingRepository) ReleaseUncheckedBookings(cutoffTime time.Time) error {
+	// Find and Update in one query
+	result := r.db.Model(&booking.Booking{}).
+		Where("status = ? AND start_time < ?", booking.StatusApproved, cutoffTime).
+		Updates(map[string]interface{}{
+			"status":           booking.StatusReleased,
+			"rejection_reason": "Auto-released due to no check-in",
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+	// Ideally we log how many were released: result.RowsAffected
+	return nil
+}
