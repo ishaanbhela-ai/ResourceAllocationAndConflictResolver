@@ -1,9 +1,13 @@
+// ============================================================
+// FILE: src/components/Auth/Login.jsx (UPDATED - With redirect after login)
+// ============================================================
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../../api/axios';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -18,7 +22,6 @@ const Login = () => {
             ...prev,
             [name]: value,
         }));
-        // Clear error for this field when user starts typing
         if (errors[name]) {
             setErrors((prev) => ({
                 ...prev,
@@ -57,22 +60,29 @@ const Login = () => {
         setApiError('');
 
         try {
-            const response = await axios.post('/api/auth/login', {
+            const response = await axios.post('/api/auth/admin', {
                 email: formData.email,
                 password: formData.password,
             });
 
             const { token, user } = response.data;
 
-            // Save token and role to localStorage
             localStorage.setItem('token', token);
             localStorage.setItem('role', user.role);
 
-            // Redirect based on role
-            if (user.role === 'ADMIN') {
-                navigate('/admin');
+            // Get the page they were trying to visit or default based on role
+            const from = location.state?.from?.pathname;
+
+            if (from && from !== '/login') {
+                // If they were trying to access a specific page, go there
+                navigate(from, { replace: true });
             } else {
-                navigate('/resources');
+                // Default redirect based on role
+                if (user.role === 'ADMIN') {
+                    navigate('/admin', { replace: true });
+                } else {
+                    navigate('/resources', { replace: true });
+                }
             }
         } catch (error) {
             if (error.response) {
@@ -144,8 +154,8 @@ const Login = () => {
                         type="submit"
                         disabled={loading}
                         className={`w-full py-3 px-4 rounded-lg font-medium text-white transition ${loading
-                                ? 'bg-blue-400 cursor-not-allowed'
-                                : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                            ? 'bg-blue-400 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
                             }`}
                     >
                         {loading ? 'Signing in...' : 'Sign In'}

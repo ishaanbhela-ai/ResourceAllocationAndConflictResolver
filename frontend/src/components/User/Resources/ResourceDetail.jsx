@@ -93,4 +93,102 @@ const ResourceDetail = () => {
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-                        <div className="flex items-cent
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-bold text-white">{resource.name}</h1>
+                                <p className="text-blue-100 mt-1">{resource.location}</p>
+                            </div>
+                            <span
+                                className={`px-4 py-2 rounded-full text-sm font-medium ${resource.is_active
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
+                                    }`}
+                            >
+                                {resource.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Details */}
+                    <div className="p-8">
+                        <div className="space-y-6">
+                            {/* Type ID */}
+                            <div className="border-b border-gray-200 pb-4">
+                                <label className="block text-sm font-medium text-gray-500 mb-1">
+                                    Resource Type ID
+                                </label>
+                                <p className="text-lg text-gray-900">{resource.type_id}</p>
+                            </div>
+
+                            {/* Location */}
+                            <div className="border-b border-gray-200 pb-4">
+                                <label className="block text-sm font-medium text-gray-500 mb-1">
+                                    Location
+                                </label>
+                                <p className="text-lg text-gray-900">{resource.location}</p>
+                            </div>
+
+                            {/* Description */}
+                            <div className="border-b border-gray-200 pb-4">
+                                <label className="block text-sm font-medium text-gray-500 mb-1">
+                                    Description
+                                </label>
+                                <p className="text-gray-900">
+                                    {resource.description || 'No description available'}
+                                </p>
+                            </div>
+
+                            {/* Properties */}
+                            <div className="border-b border-gray-200 pb-4">
+                                <label className="block text-sm font-medium text-gray-500 mb-2">
+                                    Properties
+                                </label>
+                                <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm text-gray-900 border border-gray-200">
+                                    {formatProperties(resource.properties)}
+                                </pre>
+                            </div>
+
+                            {/* Requires Approval */}
+                            <div className="border-b border-gray-200 pb-4">
+                                <label className="block text-sm font-medium text-gray-500 mb-1">
+                                    Requires Approval
+                                </label>
+                                <p className="text-lg text-gray-900">
+                                    {resource.requires_approval ? 'Yes' : 'No'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="mt-8 flex gap-4">
+                            {resource.is_active && (
+                                <button
+                                    onClick={() => setShowBookingModal(true)}
+                                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                                >
+                                    Book Resource
+                                </button>
+                            )}
+                            <button
+                                onClick={() => navigate('/resources')}
+                                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+                            >
+                                Back to List
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Booking Modal */}
+            {showBookingModal && (
+                <BookingModal
+                    resource={resource}
+                    onClose={() => setShowBookingModal(false)}
+                />
+            )}
+        </div>
+    );
+};
+
+export default ResourceDetail;
