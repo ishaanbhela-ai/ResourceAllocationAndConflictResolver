@@ -2,7 +2,11 @@ package repository
 
 import (
 	"ResourceAllocator/internal/api/resource"
+	"ResourceAllocator/internal/api/utils"
+	"errors"
+	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -15,48 +19,124 @@ func NewResourceRepository(db *gorm.DB) *ResourceRepository {
 }
 
 func (r *ResourceRepository) CreateResource(res *resource.Resource) error {
-	return r.db.Create(res).Error
+	if err := r.db.Create(res).Error; err != nil {
+		if utils.IsDuplicateKeyError(err) {
+			return fmt.Errorf("%w: resource already exists", utils.ErrConflict)
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *ResourceRepository) GetResourceByID(id int) (*resource.Resource, error) {
 	var res resource.Resource
 	if err := r.db.First(&res, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("%w: resource not found", utils.ErrNotFound)
+		}
 		return nil, err
 	}
 	return &res, nil
 }
 
-func (r *ResourceRepository) GetAllResources() ([]resource.Resource, error) {
-	var resources []resource.Resource
-	if err := r.db.Find(&resources).Error; err != nil {
-		return nil, err
+func (r *ResourceRepository) GetAllResources(typeID *int, location string, props map[string]string, startTime, endTime *string, pagination utils.PaginationQuery) ([]resource.ResourceSummary, int64, error) {
+	var resources []resource.ResourceSummary
+	var total int64
+	query := r.db.Model(&resource.Resource{})
+	// 1. Standard SQL Filters
+	if typeID != nil {
+		query = query.Where("type_id = ?", *typeID)
 	}
-	return resources, nil
+	if location != "" {
+		query = query.Where("location = ?", location)
+	}
+	// 2. Dynamic JSON Filters
+	for key, value := range props {
+		query = query.Where("properties::jsonb ->> ? = ?", key, value)
+	}
+
+	// 3. Temporal Availability Filter (NOT EXISTS)
+	// ONLY if both start and end times are provided
+	if startTime != nil && endTime != nil && *startTime != "" && *endTime != "" {
+		query = query.Where(`
+			NOT EXISTS (
+				SELECT 1 FROM bookings b
+				WHERE b.resource_id = resources.id
+				AND b.status = 'APPROVED'
+				AND (b.start_time < ? AND b.end_time > ?)
+			)
+		`, *endTime, *startTime)
+	}
+
+	// Count Total
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	// Pagination
+	offset := (pagination.Page - 1) * pagination.Limit
+	err := query.Order("created_at desc").
+		Limit(pagination.Limit).
+		Offset(offset).
+		Find(&resources).Error
+
+	return resources, total, err
 }
 
 func (r *ResourceRepository) UpdateResource(res *resource.Resource) error {
-	return r.db.Save(res).Error
+	if err := r.db.Save(res).Error; err != nil {
+		if utils.IsDuplicateKeyError(err) {
+			return fmt.Errorf("%w: resource already exists", utils.ErrConflict)
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *ResourceRepository) DeleteResource(id int) error {
-	return r.db.Delete(&resource.Resource{}, id).Error
+	result := r.db.Delete(&resource.Resource{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("%w: resource not found", utils.ErrNotFound)
+	}
+	return nil
 }
 
 func (r *ResourceRepository) CreateResourceType(resType *resource.ResourceType) error {
-	return r.db.Create(resType).Error
+	if err := r.db.Create(resType).Error; err != nil {
+		if utils.IsDuplicateKeyError(err) {
+			return fmt.Errorf("%w: resource type already exists", utils.ErrConflict)
+		}
+		return err
+	}
+	return nil
 }
 
-func (r *ResourceRepository) GetAllResourceTypes() ([]resource.ResourceType, error) {
-	var types []resource.ResourceType
-	if err := r.db.Find(&types).Error; err != nil {
-		return nil, err
+func (r *ResourceRepository) GetAllResourceTypes(pagination utils.PaginationQuery) ([]resource.ResourceTypeSummary, int64, error) {
+	var types []resource.ResourceTypeSummary
+	var total int64
+
+	query := r.db.Table("resource_types").Model(&resource.ResourceTypeSummary{})
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return types, nil
+
+	offset := (pagination.Page - 1) * pagination.Limit
+	err := query.Order("id asc").
+		Limit(pagination.Limit).
+		Offset(offset).
+		Find(&types).Error
+
+	return types, total, err
 }
 
 func (r *ResourceRepository) GetResourceTypeByID(id int) (*resource.ResourceType, error) {
 	var resType resource.ResourceType
 	if err := r.db.First(&resType, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) { // <--- CHECK
+			return nil, fmt.Errorf("%w: resource type not found", utils.ErrNotFound)
+		}
 		return nil, err
 	}
 	return &resType, nil
@@ -67,7 +147,19 @@ func (r *ResourceRepository) UpdateResourceType(resType *resource.ResourceType) 
 }
 
 func (r *ResourceRepository) DeleteResourceType(id int) error {
-	return r.db.Delete(&resource.ResourceType{}, id).Error
+	result := r.db.Delete(&resource.ResourceType{}, id)
+	if result.Error != nil {
+		// Import "errors" and check Postgres code
+		var pgErr *pgconn.PgError
+		if errors.As(result.Error, &pgErr) && pgErr.Code == "23503" {
+			return fmt.Errorf("%w: resource type in use", utils.ErrConflict)
+		}
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("%w: resource type not found", utils.ErrNotFound)
+	}
+	return nil
 }
 
 func (r *ResourceRepository) CountResourcesByType(typeID int) (int64, error) {
