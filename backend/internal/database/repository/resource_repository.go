@@ -4,6 +4,7 @@ import (
 	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/utils"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
@@ -20,7 +21,7 @@ func NewResourceRepository(db *gorm.DB) *ResourceRepository {
 func (r *ResourceRepository) CreateResource(res *resource.Resource) error {
 	if err := r.db.Create(res).Error; err != nil {
 		if utils.IsDuplicateKeyError(err) {
-			return utils.ErrConflict
+			return fmt.Errorf("%w: resource already exists", utils.ErrConflict)
 		}
 		return err
 	}
@@ -31,7 +32,7 @@ func (r *ResourceRepository) GetResourceByID(id int) (*resource.Resource, error)
 	var res resource.Resource
 	if err := r.db.First(&res, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utils.ErrNotFound
+			return nil, fmt.Errorf("%w: resource not found", utils.ErrNotFound)
 		}
 		return nil, err
 	}
@@ -61,7 +62,7 @@ func (r *ResourceRepository) GetAllResources(typeID *int, location string, props
 func (r *ResourceRepository) UpdateResource(res *resource.Resource) error {
 	if err := r.db.Save(res).Error; err != nil {
 		if utils.IsDuplicateKeyError(err) {
-			return utils.ErrConflict
+			return fmt.Errorf("%w: resource already exists", utils.ErrConflict)
 		}
 		return err
 	}
@@ -74,7 +75,7 @@ func (r *ResourceRepository) DeleteResource(id int) error {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return utils.ErrNotFound
+		return fmt.Errorf("%w: resource not found", utils.ErrNotFound)
 	}
 	return nil
 }
@@ -82,7 +83,7 @@ func (r *ResourceRepository) DeleteResource(id int) error {
 func (r *ResourceRepository) CreateResourceType(resType *resource.ResourceType) error {
 	if err := r.db.Create(resType).Error; err != nil {
 		if utils.IsDuplicateKeyError(err) {
-			return utils.ErrConflict
+			return fmt.Errorf("%w: resource type already exists", utils.ErrConflict)
 		}
 		return err
 	}
@@ -101,7 +102,7 @@ func (r *ResourceRepository) GetResourceTypeByID(id int) (*resource.ResourceType
 	var resType resource.ResourceType
 	if err := r.db.First(&resType, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) { // <--- CHECK
-			return nil, utils.ErrNotFound
+			return nil, fmt.Errorf("%w: resource type not found", utils.ErrNotFound)
 		}
 		return nil, err
 	}
@@ -118,12 +119,12 @@ func (r *ResourceRepository) DeleteResourceType(id int) error {
 		// Import "errors" and check Postgres code
 		var pgErr *pgconn.PgError
 		if errors.As(result.Error, &pgErr) && pgErr.Code == "23503" {
-			return utils.ErrConflict // "Cannot delete: In use"
+			return fmt.Errorf("%w: resource type in use", utils.ErrConflict)
 		}
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return utils.ErrNotFound
+		return fmt.Errorf("%w: resource type not found", utils.ErrNotFound)
 	}
 	return nil
 }
