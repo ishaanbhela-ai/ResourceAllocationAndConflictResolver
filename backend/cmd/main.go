@@ -5,7 +5,6 @@ import (
 	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/routes"
 	"ResourceAllocator/internal/api/user"
-	"ResourceAllocator/internal/api/utils"
 	"ResourceAllocator/internal/database"
 	"ResourceAllocator/internal/database/repository"
 	"log"
@@ -135,7 +134,7 @@ func main() {
 		}
 	}()
 
-	go utils.StartEmailWorker()
+	// go utils.StartEmailWorker()
 
 	appHandlers := routes.NewHandlers(
 		userHandler,
