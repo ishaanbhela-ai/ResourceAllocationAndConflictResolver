@@ -40,8 +40,8 @@ const AdminLayout = () => {
                                     key={item.path}
                                     onClick={() => navigate(item.path)}
                                     className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition ${location.pathname === item.path
-                                            ? 'bg-blue-800 text-white'
-                                            : 'text-blue-100 hover:bg-blue-500 hover:text-white'
+                                        ? 'bg-blue-800 text-white'
+                                        : 'text-blue-100 hover:bg-blue-500 hover:text-white'
                                         }`}
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
