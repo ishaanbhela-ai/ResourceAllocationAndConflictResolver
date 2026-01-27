@@ -3,6 +3,7 @@ package booking
 import (
 	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/user"
+	"strings"
 	"time"
 )
 
@@ -62,4 +63,8 @@ type BookingSummary struct {
 	StartTime    time.Time     `json:"start_time"`
 	EndTime      time.Time     `json:"end_time"`
 	Status       BookingStatus `json:"status"`
+}
+
+func (b *BookingCreate) Sanitize() {
+	b.Purpose = strings.TrimSpace(b.Purpose)
 }

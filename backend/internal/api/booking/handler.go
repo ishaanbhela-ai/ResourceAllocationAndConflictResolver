@@ -37,6 +37,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		utils.Error(c, http.StatusBadRequest, "invalid booking request")
 		return
 	}
+	req.Sanitize()
 	booking, err := h.service.CreateBooking(&req, userID.(string))
 	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())

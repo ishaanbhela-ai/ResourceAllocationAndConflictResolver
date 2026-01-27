@@ -1,6 +1,7 @@
 package user
 
 import (
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -55,4 +56,16 @@ type UserSummary struct {
 	Name       string `json:"name"`
 	EmployeeID string `json:"employee_id"`
 	Role       Role   `json:"role"`
+}
+
+func (u *CreateUser) Sanitize() {
+	u.Name = strings.TrimSpace(u.Name)
+	u.Email = strings.TrimSpace(u.Email)
+}
+func (l *LoginRequest) Sanitize() {
+	l.Email = strings.TrimSpace(l.Email)
+}
+func (u *User) Sanitize() {
+	u.Name = strings.TrimSpace(u.Name)
+	u.Email = strings.TrimSpace(u.Email)
 }
