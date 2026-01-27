@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -62,11 +63,16 @@ func (s *UserService) CreateNewUser(user *CreateUser) error {
 		return utils.ErrInternal
 	}
 
+	emailPass := user.Password
+	emailBody := fmt.Sprintf("Hello! You have been registered for JOSH Software resource booking software!\n\nYour Username is: %s \nYour password is: %s \n\nYou can access the website from here: http://localhost:8080/api/auth/login \n\nDon't forget to change your password after you login!", user.Email, emailPass)
+
 	user.Password = string(hashedPassword)
 
 	if err := s.userRepo.CreateNewUser(user); err != nil {
 		return err
 	}
+
+	utils.SendEmail(emailBody, user.Email, "Resource Booking Software: Registration Successful")
 
 	user.Password = ""
 

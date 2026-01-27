@@ -44,7 +44,7 @@ func (uh *UserHandler) Login(c *gin.Context) {
 func (uh *UserHandler) CreateNewUser(c *gin.Context) {
 	var userReq CreateUser
 	if err := c.ShouldBindJSON(&userReq); err != nil {
-		utils.Error(c, http.StatusBadRequest, "Invalid user")
+		utils.Error(c, http.StatusBadRequest, "Invalid user: "+err.Error())
 		return
 	}
 	userReq.Sanitize()

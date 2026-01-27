@@ -5,6 +5,7 @@ import (
 	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/routes"
 	"ResourceAllocator/internal/api/user"
+	"ResourceAllocator/internal/api/utils"
 	"ResourceAllocator/internal/database"
 	"ResourceAllocator/internal/database/repository"
 	"log"
@@ -84,7 +85,16 @@ func main() {
 				log.Printf("Background Worker Error: %v", err)
 			}
 		}
+
+		if time.Now().Minute() == 10 {
+			log.Println("Running Check-in Reminder Job...")
+			if err := bookingService.SendCheckInReminders(); err != nil {
+				log.Println("Error sending reminders:", err)
+			}
+		}
 	}()
+
+	go utils.StartEmailWorker()
 
 	appHandlers := routes.NewHandlers(
 		userHandler,

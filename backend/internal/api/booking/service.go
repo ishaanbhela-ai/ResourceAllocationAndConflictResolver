@@ -13,12 +13,13 @@ type IBookingRepo interface {
 	HasApprovedOverlap(resourceID int, start, end time.Time) (bool, error)
 	GetPendingOverlaps(resourceID int, start, end time.Time) ([]Booking, error)
 	UpdateBooking(b *Booking) error
-	ApproveBookingAndRejectConflicts(targetBooking *Booking, conflicts []Booking) error
+	ApproveBookingAndRejectConflicts(targetBooking *Booking) ([]Booking, error)
 	GetBookingsByUserID(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]Booking, error)
 	CheckInBooking(bookingId int) error
 	ReleaseUncheckedBookings(cutoffTime time.Time) error
+	GetApprovedBookingsStartingAt(startTime time.Time) ([]Booking, error)
 }
 
 type BookingService struct {
@@ -165,6 +166,10 @@ func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Book
 		Status:       fullBooking.Status,
 	}
 
+	summaryEmailBody := fmt.Sprintf("Thank You for booking a resource, Here is your summary: \n\n Booking ID: %d\nResource: %s\nUser: %s\nStart Time: %s\nEnd Time: %s\nStatus: %s", summary.ID, summary.ResourceName, summary.UserName, summary.StartTime, summary.EndTime, summary.Status)
+
+	utils.SendEmail(summaryEmailBody, fullBooking.User.Email, "Booking Summary")
+
 	return summary, nil
 }
 
@@ -178,25 +183,35 @@ func (s *BookingService) UpdateStatus(id int, req *BookingStatusUpdate, approver
 	}
 	// APPROVE
 	if req.Status == StatusApproved {
-		// 1. Find overlapping pending requests
-		conflicts, err := s.BookingRepo.GetPendingOverlaps(booking.ResourceID, booking.StartTime, booking.EndTime)
-		if err != nil {
-			return err
-		}
-		// 2. Filter list (remove self)
-		var realConflicts []Booking
-		for _, b := range conflicts {
-			if b.ID != id {
-				realConflicts = append(realConflicts, b)
-			}
-		}
-		// 3. Prepare data for approval
+		// 1. Prepare data for approval
 		now := time.Now()
 		booking.Status = StatusApproved
 		booking.ApprovedBy = &approverID
 		booking.ApprovedAt = &now
-		// 4. Execute Transaction
-		return s.BookingRepo.ApproveBookingAndRejectConflicts(booking, realConflicts)
+
+		// 2. Execute Transaction (Approve + Reject Conflicts in DB)
+		// Now receives list of rejected bookings for email notification
+		rejectedBookings, err := s.BookingRepo.ApproveBookingAndRejectConflicts(booking)
+		if err != nil {
+			return err
+		}
+
+		// 3. Send Approval Email
+		subject := "Resource Approved!"
+		body := fmt.Sprintf("Your booking has been approved!\n\nBooking ID: %d\nResource: %s\nUser: %s\nStart Time: %s\nEnd Time: %s\nStatus: %s", booking.ID, booking.Resource.Name, booking.User.Name, booking.StartTime, booking.EndTime, booking.Status)
+		utils.SendEmail(body, booking.User.Email, subject)
+
+		// 4. Send Rejection Emails (Async preferred but Sync for now)
+		for _, rb := range rejectedBookings {
+			rejectSubject := "Booking Rejected due to Conflict"
+			rejectBody := fmt.Sprintf("Your booking has been rejected because the slot was approved for another request.\n\nBooking ID: %d\nResource: %s\nStart Time: %v\nEnd Time: %v", rb.ID, rb.Resource.Name, rb.StartTime, rb.EndTime)
+			// Ensure we have the user email. Preload in repo handles this.
+			if rb.User.Email != "" {
+				utils.SendEmail(rejectBody, rb.User.Email, rejectSubject)
+			}
+		}
+
+		return nil
 	}
 	// REJECT
 	if req.Status == StatusRejected {
@@ -207,7 +222,14 @@ func (s *BookingService) UpdateStatus(id int, req *BookingStatusUpdate, approver
 		now := time.Now()
 		booking.ApprovedAt = &now // Track when it was rejected
 		// Use UpdateBooking (since UpdateStatus was not available in your repo)
-		return s.BookingRepo.UpdateBooking(booking)
+		err := s.BookingRepo.UpdateBooking(booking)
+		if err != nil {
+			return err
+		}
+		subject := "Resource Rejected!"
+		body := fmt.Sprintf("Your booking has been rejected!\n\nBooking ID: %d\nResource: %s\nUser: %s\nStart Time: %s\nEnd Time: %s\nStatus: %s\n Reason: %s", booking.ID, booking.Resource.Name, booking.User.Name, booking.StartTime, booking.EndTime, booking.Status, booking.RejectionReason)
+		utils.SendEmail(body, booking.User.Email, subject)
+		return nil
 	}
 	return fmt.Errorf("%w: invalid status transition", utils.ErrInvalidInput)
 }
@@ -226,7 +248,14 @@ func (s *BookingService) CancelBooking(id int, userID string) error {
 	}
 	// Reuse Update logic, but specifically for Cancel
 	booking.Status = StatusCancelled
-	return s.BookingRepo.UpdateBooking(booking)
+	err = s.BookingRepo.UpdateBooking(booking)
+	if err != nil {
+		return err
+	}
+	subject := "Resource Cancelled!"
+	body := fmt.Sprintf("Your booking has been cancelled!\n\nBooking ID: %d\nResource: %s\nUser: %s\nStart Time: %s\nEnd Time: %s\nStatus: %s", booking.ID, booking.Resource.Name, booking.User.Name, booking.StartTime, booking.EndTime, booking.Status)
+	utils.SendEmail(body, booking.User.Email, subject)
+	return nil
 }
 
 func (s *BookingService) GetMyBookings(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error) {
@@ -293,4 +322,27 @@ func (s *BookingService) RunAutoReleaseJob() error {
 	// 15 minutes ago
 	cutoffTime := time.Now().Add(-15 * time.Minute)
 	return s.BookingRepo.ReleaseUncheckedBookings(cutoffTime)
+}
+
+func (s *BookingService) SendCheckInReminders() error {
+	// 1. Calculate the booking start time we are interested in.
+	// If it is 10:10 now, we want bookings that started at 10:00.
+	// We simply truncate the current time to the hour.
+	bookingStartTime := time.Now().Truncate(time.Hour)
+	// 2. Find customers who haven't checked in yet
+	bookings, err := s.BookingRepo.GetApprovedBookingsStartingAt(bookingStartTime)
+	if err != nil {
+		return err
+	}
+	// 3. Send Reminder Emails
+	for _, b := range bookings {
+		subject := "Reminder: Check-in to your Booking!"
+		body := fmt.Sprintf("Hello %s,\n\nYou have a booking for %s that started at %s.\n\nPlease check in within the next 5 minutes to avoid auto-cancellation!",
+			b.User.Name, b.Resource.Name, b.StartTime.Format("15:04"))
+
+		// This uses your new async email worker!
+		utils.SendEmail(body, b.User.Email, subject)
+	}
+
+	return nil
 }
