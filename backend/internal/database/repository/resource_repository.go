@@ -26,9 +26,17 @@ func (r *ResourceRepository) GetResourceByID(id int) (*resource.Resource, error)
 	return &res, nil
 }
 
-func (r *ResourceRepository) GetAllResources() ([]resource.Resource, error) {
-	var resources []resource.Resource
-	if err := r.db.Find(&resources).Error; err != nil {
+func (r *ResourceRepository) GetAllResources(filters map[string]string) ([]resource.ResourceSummary, error) {
+	var resources []resource.ResourceSummary
+
+	query := r.db.Model(&resource.Resource{})
+	// [NEW] Apply dynamic filters
+	// filters might contain {"ram": "16GB"}
+	for key, value := range filters {
+		// Postgres JSONB syntax: properties ->> 'key' = 'value'
+		query = query.Where("properties ->> ? = ?", key, value)
+	}
+	if err := query.Find(&resources).Error; err != nil {
 		return nil, err
 	}
 	return resources, nil

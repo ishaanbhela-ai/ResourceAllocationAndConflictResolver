@@ -4,7 +4,7 @@ import "errors"
 
 type ResourceRepository interface {
 	GetResourceByID(id int) (*Resource, error)
-	GetAllResources() ([]Resource, error)
+	GetAllResources(filters map[string]string) ([]ResourceSummary, error)
 	GetAllResourceTypes() ([]ResourceType, error)
 	GetResourceTypeByID(id int) (*ResourceType, error)
 
@@ -29,11 +29,15 @@ func NewResourceService(repo ResourceRepository) *ResourceService {
 }
 
 func (s *ResourceService) CreateResource(res *Resource) error {
-	_, err := s.Repo.GetResourceTypeByID(res.TypeID)
+	// 1. Fetch Type
+	resType, err := s.Repo.GetResourceTypeByID(res.TypeID)
 	if err != nil {
 		return errors.New("resource type does not exist")
 	}
-
+	// 2. [NEW] Validate Properties
+	if err := validateProperties(resType.SchemaDefinition, res.Properties); err != nil {
+		return err
+	}
 	return s.Repo.CreateResource(res)
 }
 
@@ -41,8 +45,8 @@ func (s *ResourceService) GetResourceByID(id int) (*Resource, error) {
 	return s.Repo.GetResourceByID(id)
 }
 
-func (s *ResourceService) GetAllResources() ([]Resource, error) {
-	return s.Repo.GetAllResources()
+func (s *ResourceService) GetAllResources(filters map[string]string) ([]ResourceSummary, error) {
+	return s.Repo.GetAllResources(filters)
 }
 
 func (s *ResourceService) UpdateResource(res *Resource) error {
@@ -84,4 +88,13 @@ func (s *ResourceService) DeleteResourceType(id int) error {
 	}
 	// 2. Safe to delete
 	return s.Repo.DeleteResourceType(id)
+}
+
+func validateProperties(schema map[string]string, props map[string]interface{}) error {
+	for key := range schema {
+		if _, exists := props[key]; !exists {
+			return errors.New("missing required property " + key)
+		}
+	}
+	return nil
 }

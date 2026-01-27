@@ -10,7 +10,7 @@ import (
 
 type IResourceService interface {
 	GetResourceByID(id int) (*Resource, error)
-	GetAllResources() ([]Resource, error)
+	GetAllResources(filters map[string]string) ([]ResourceSummary, error)
 	GetAllResourceTypes() ([]ResourceType, error)
 	GetResourceTypeByID(id int) (*ResourceType, error)
 
@@ -65,12 +65,23 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 }
 
 func (h *ResourceHandler) ListResources(c *gin.Context) {
-	resources, err := h.iservice.GetAllResources()
+	// 1. Extract filters starting with "prop_"
+	filters := make(map[string]string)
+	queryParams := c.Request.URL.Query()
+
+	for key, values := range queryParams {
+		if len(key) > 5 && key[:5] == "prop_" && len(values) > 0 {
+			// prop_ram -> ram
+			actualKey := key[5:]
+			filters[actualKey] = values[0]
+		}
+	}
+	// 2. Pass filters to service
+	resources, err := h.iservice.GetAllResources(filters)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to fetch resources", err.Error())
 		return
 	}
-
 	c.JSON(http.StatusOK, resources)
 }
 
