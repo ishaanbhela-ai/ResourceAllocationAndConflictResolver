@@ -4,6 +4,8 @@ import (
 	"ResourceAllocator/internal/api/utils"
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -13,12 +15,13 @@ type IBookingRepo interface {
 	HasApprovedOverlap(resourceID int, start, end time.Time) (bool, error)
 	GetPendingOverlaps(resourceID int, start, end time.Time) ([]Booking, error)
 	UpdateBooking(b *Booking) error
-	ApproveBookingAndRejectConflicts(targetBooking *Booking, conflicts []Booking) error
+	ApproveBookingAndRejectConflicts(targetBooking *Booking) ([]Booking, error)
 	GetBookingsByUserID(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]Booking, error)
 	CheckInBooking(bookingId int) error
 	ReleaseUncheckedBookings(cutoffTime time.Time) error
+	GetApprovedBookingsStartingAt(startTime time.Time) ([]Booking, error)
 }
 
 type BookingService struct {
@@ -38,52 +41,56 @@ func isValidSlot(start time.Time, duration time.Duration) error {
 	return utils.IsHoliday(start)
 }
 
-// Helper: Find next gaps (plural)
 func (s *BookingService) findNextAvailableSlots(resourceID int, initialStart time.Time, duration time.Duration, limit int) ([]time.Time, error) {
+	// 1. Fetch bookings sorted by StartTime (Make sure your Repo sorts them!)
 	bookings, err := s.BookingRepo.GetFutureApprovedBookings(resourceID, initialStart)
 	if err != nil {
 		return nil, err
 	}
-
 	var suggestions []time.Time
-	candidate := initialStart
 
+	// Start looking from the requested time
+	candidate := initialStart
 	// Safety limit: look ahead max 7 days
 	endTimeLimit := initialStart.AddDate(0, 0, 7)
-
+	// Index to track which booking we are currently "near" to avoid re-scanning past bookings
+	bookingIdx := 0
+	totalBookings := len(bookings)
 	for len(suggestions) < limit {
 		if candidate.After(endTimeLimit) {
 			break
 		}
-
-		// 1. Check strict validity (Hours + Holidays)
+		// 2. Adjust candidate if it falls outside working hours or on a holiday
+		// If this function moves the time forward, loop again to check the new time against bookings
 		if err := isValidSlot(candidate, duration); err != nil {
-			// If outside hours or holiday, advance to next 9AM
-			candidate = time.Date(candidate.Year(), candidate.Month(), candidate.Day(), 9, 0, 0, 0, candidate.Location()).AddDate(0, 0, 1)
+			// Jump to next 9 AM
+			nextDay := candidate.AddDate(0, 0, 1)
+			candidate = time.Date(nextDay.Year(), nextDay.Month(), nextDay.Day(), 9, 0, 0, 0, nextDay.Location())
 			continue
 		}
-
-		// 2. Check Overlap
+		// 3. Fast-Forward past bookings that end before our candidate starts
+		for bookingIdx < totalBookings && bookings[bookingIdx].EndTime.Before(candidate.Add(time.Second)) {
+			bookingIdx++
+		}
+		// 4. Check Collision with the current relevant booking
 		isOverlapping := false
-		for _, b := range bookings {
-			// If candidate End > Booking Start AND candidate Start < Booking End
-			if candidate.Add(duration).After(b.StartTime) && candidate.Before(b.EndTime) {
+		if bookingIdx < totalBookings {
+			b := bookings[bookingIdx]
+			// We only care if the Booking Start is before our Candidate End
+			// (We already know Booking End is after Candidate Start from step 3)
+			if b.StartTime.Before(candidate.Add(duration)) {
 				isOverlapping = true
-				// Jump to end of conflict
-				// But we also need to ensure that the new candidate is top-of-hour if that's a rule
-				// For simplicity, let's jump to the booking's EndTime (which should be hourly aligned)
+				// Optimization: Jump straight to the end of this blocking booking
 				candidate = b.EndTime
-				break
 			}
 		}
-
+		// 5. If valid, add to suggestions
 		if !isOverlapping {
 			suggestions = append(suggestions, candidate)
-			// Move to next hour to find next option
+			// Move forward by 1 hour to give the user alternative start times
 			candidate = candidate.Add(1 * time.Hour)
 		}
 	}
-
 	if len(suggestions) == 0 {
 		return nil, errors.New("no slots available in next 7 days")
 	}
@@ -91,6 +98,17 @@ func (s *BookingService) findNextAvailableSlots(resourceID int, initialStart tim
 }
 
 func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*BookingSummary, error) {
+	// Use robust timezone loading
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		// Fallback to strict offset if DB is missing (5h 30m = 19800s)
+		loc = time.FixedZone("IST", 5*3600+30*60)
+	}
+
+	if req.StartTime.Before(time.Now().In(loc)) {
+		return nil, fmt.Errorf("%w: start time must be in the future", utils.ErrInvalidInput)
+	}
+
 	// A. Validate Time
 	if req.EndTime.Before(req.StartTime) {
 		return nil, fmt.Errorf("%w: end time must be after start time", utils.ErrInvalidInput)
@@ -126,12 +144,12 @@ func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Book
 		slots, err := s.findNextAvailableSlots(req.ResourceID, req.StartTime, duration, 4)
 		msg := "slot unavailable"
 		if err == nil && len(slots) > 0 {
-			// Format slots
 			var slotStrings []string
 			for _, slot := range slots {
-				slotStrings = append(slotStrings, slot.Format("15:04"))
+				slotStrings = append(slotStrings, slot.Format("Mon, 02 Jan 15:04"))
 			}
-			msg = fmt.Sprintf("slot unavailable. Suggested slots: %v", slotStrings)
+			// add a new line character after each time.
+			msg = fmt.Sprintf("slot unavailable. Suggested slots: \n%v", strings.Join(slotStrings, "\n"))
 		}
 		return nil, fmt.Errorf("%w: %s", utils.ErrConflict, msg)
 	}
@@ -165,6 +183,10 @@ func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Book
 		Status:       fullBooking.Status,
 	}
 
+	summaryEmailBody := fmt.Sprintf("Thank You for booking a resource, Here is your summary: \n\n Booking ID: %d\nResource: %s\nUser: %s\nStart Time: %s\nEnd Time: %s\nStatus: %s", summary.ID, summary.ResourceName, summary.UserName, summary.StartTime, summary.EndTime, summary.Status)
+
+	utils.SendEmail(summaryEmailBody, fullBooking.User.Email, "Booking Summary")
+
 	return summary, nil
 }
 
@@ -178,25 +200,35 @@ func (s *BookingService) UpdateStatus(id int, req *BookingStatusUpdate, approver
 	}
 	// APPROVE
 	if req.Status == StatusApproved {
-		// 1. Find overlapping pending requests
-		conflicts, err := s.BookingRepo.GetPendingOverlaps(booking.ResourceID, booking.StartTime, booking.EndTime)
-		if err != nil {
-			return err
-		}
-		// 2. Filter list (remove self)
-		var realConflicts []Booking
-		for _, b := range conflicts {
-			if b.ID != id {
-				realConflicts = append(realConflicts, b)
-			}
-		}
-		// 3. Prepare data for approval
+		// 1. Prepare data for approval
 		now := time.Now()
 		booking.Status = StatusApproved
 		booking.ApprovedBy = &approverID
 		booking.ApprovedAt = &now
-		// 4. Execute Transaction
-		return s.BookingRepo.ApproveBookingAndRejectConflicts(booking, realConflicts)
+
+		// 2. Execute Transaction (Approve + Reject Conflicts in DB)
+		// Now receives list of rejected bookings for email notification
+		rejectedBookings, err := s.BookingRepo.ApproveBookingAndRejectConflicts(booking)
+		if err != nil {
+			return err
+		}
+
+		// 3. Send Approval Email
+		subject := "Resource Approved!"
+		body := fmt.Sprintf("Your booking has been approved!\n\nBooking ID: %d\nResource: %s\nUser: %s\nStart Time: %s\nEnd Time: %s\nStatus: %s", booking.ID, booking.Resource.Name, booking.User.Name, booking.StartTime, booking.EndTime, booking.Status)
+		utils.SendEmail(body, booking.User.Email, subject)
+
+		// 4. Send Rejection Emails (Async preferred but Sync for now)
+		for _, rb := range rejectedBookings {
+			rejectSubject := "Booking Rejected due to Conflict"
+			rejectBody := fmt.Sprintf("Your booking has been rejected because the slot was approved for another request.\n\nBooking ID: %d\nResource: %s\nStart Time: %v\nEnd Time: %v", rb.ID, rb.Resource.Name, rb.StartTime, rb.EndTime)
+			// Ensure we have the user email. Preload in repo handles this.
+			if rb.User.Email != "" {
+				utils.SendEmail(rejectBody, rb.User.Email, rejectSubject)
+			}
+		}
+
+		return nil
 	}
 	// REJECT
 	if req.Status == StatusRejected {
@@ -207,7 +239,14 @@ func (s *BookingService) UpdateStatus(id int, req *BookingStatusUpdate, approver
 		now := time.Now()
 		booking.ApprovedAt = &now // Track when it was rejected
 		// Use UpdateBooking (since UpdateStatus was not available in your repo)
-		return s.BookingRepo.UpdateBooking(booking)
+		err := s.BookingRepo.UpdateBooking(booking)
+		if err != nil {
+			return err
+		}
+		subject := "Resource Rejected!"
+		body := fmt.Sprintf("Your booking has been rejected!\n\nBooking ID: %d\nResource: %s\nUser: %s\nStart Time: %s\nEnd Time: %s\nStatus: %s\n Reason: %s", booking.ID, booking.Resource.Name, booking.User.Name, booking.StartTime, booking.EndTime, booking.Status, booking.RejectionReason)
+		utils.SendEmail(body, booking.User.Email, subject)
+		return nil
 	}
 	return fmt.Errorf("%w: invalid status transition", utils.ErrInvalidInput)
 }
@@ -226,7 +265,14 @@ func (s *BookingService) CancelBooking(id int, userID string) error {
 	}
 	// Reuse Update logic, but specifically for Cancel
 	booking.Status = StatusCancelled
-	return s.BookingRepo.UpdateBooking(booking)
+	err = s.BookingRepo.UpdateBooking(booking)
+	if err != nil {
+		return err
+	}
+	subject := "Resource Cancelled!"
+	body := fmt.Sprintf("Your booking has been cancelled!\n\nBooking ID: %d\nResource: %s\nUser: %s\nStart Time: %s\nEnd Time: %s\nStatus: %s", booking.ID, booking.Resource.Name, booking.User.Name, booking.StartTime, booking.EndTime, booking.Status)
+	utils.SendEmail(body, booking.User.Email, subject)
+	return nil
 }
 
 func (s *BookingService) GetMyBookings(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error) {
@@ -293,4 +339,32 @@ func (s *BookingService) RunAutoReleaseJob() error {
 	// 15 minutes ago
 	cutoffTime := time.Now().Add(-15 * time.Minute)
 	return s.BookingRepo.ReleaseUncheckedBookings(cutoffTime)
+}
+
+func (s *BookingService) SendCheckInReminders() error {
+	// 1. Calculate the booking start time we are interested in.
+	// Use time.Date to safely truncate to the hour in Local time (Handles IST +5:30 correctly)
+	now := time.Now()
+	bookingStartTime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
+
+	// 2. Find customers who haven't checked in yet
+	bookings, err := s.BookingRepo.GetApprovedBookingsStartingAt(bookingStartTime)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Check-in Reminder Job: Looking for bookings at %s. Found %d bookings.", bookingStartTime, len(bookings))
+
+	// 3. Send Reminder Emails
+	for _, b := range bookings {
+		log.Printf("Sending reminder to user %s (%s) for booking %d", b.User.Name, b.User.Email, b.ID)
+		subject := "Reminder: Check-in to your Booking!"
+		body := fmt.Sprintf("Hello %s,\n\nYou have a booking for %s that started at %s.\n\nPlease check in within the next 5 minutes to avoid auto-cancellation!",
+			b.User.Name, b.Resource.Name, b.StartTime.Format("15:04"))
+
+		// This uses your new async email worker!
+		utils.SendEmail(body, b.User.Email, subject)
+	}
+
+	return nil
 }

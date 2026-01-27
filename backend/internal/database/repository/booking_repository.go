@@ -59,8 +59,9 @@ func (r *BookingRepository) UpdateBooking(b *booking.Booking) error {
 	return r.db.Model(&booking.Booking{}).Where("id = ?", b.ID).Updates(b).Error
 }
 
-func (r *BookingRepository) ApproveBookingAndRejectConflicts(targetBooking *booking.Booking, conflicts []booking.Booking) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *BookingRepository) ApproveBookingAndRejectConflicts(targetBooking *booking.Booking) ([]booking.Booking, error) {
+	var rejectedBookings []booking.Booking
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 
 		// Check if target booking exists
 		if err := tx.First(&booking.Booking{}, targetBooking.ID).Error; err != nil {
@@ -79,10 +80,25 @@ func (r *BookingRepository) ApproveBookingAndRejectConflicts(targetBooking *book
 			}).Error; err != nil {
 			return err
 		}
-		// 2. Reject Conflicts
-		for _, b := range conflicts {
+
+		// 2. Find Conflicts (Fetch Booking + User for Email)
+		// We explicitly fetch them first to get the User data
+		if err := tx.Preload("User").Preload("Resource").
+			Where("resource_id = ? AND status = ? AND id != ?", targetBooking.ResourceID, booking.StatusPending, targetBooking.ID).
+			Where("start_time < ? AND end_time > ?", targetBooking.EndTime, targetBooking.StartTime).
+			Find(&rejectedBookings).Error; err != nil {
+			return err
+		}
+
+		// 3. Reject Conflicts
+		if len(rejectedBookings) > 0 {
+			var ids []int
+			for _, b := range rejectedBookings {
+				ids = append(ids, b.ID)
+			}
+
 			if err := tx.Model(&booking.Booking{}).
-				Where("id = ?", b.ID).
+				Where("id IN ?", ids).
 				Updates(map[string]interface{}{
 					"status":           booking.StatusRejected,
 					"rejection_reason": "Slot allocated to another request",
@@ -90,8 +106,11 @@ func (r *BookingRepository) ApproveBookingAndRejectConflicts(targetBooking *book
 				return err
 			}
 		}
+
 		return nil
 	})
+
+	return rejectedBookings, err
 }
 
 func (r *BookingRepository) GetBookingsByUserID(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]booking.Booking, int64, error) {
@@ -182,4 +201,14 @@ func (r *BookingRepository) ReleaseUncheckedBookings(cutoffTime time.Time) error
 	}
 	// Ideally we log how many were released: result.RowsAffected
 	return nil
+}
+
+// GetApprovedBookingsStartingAt finds bookings that started at a specific time and are still only 'APPROVED' (not Utilized)
+func (r *BookingRepository) GetApprovedBookingsStartingAt(startTime time.Time) ([]booking.Booking, error) {
+	var bookings []booking.Booking
+	// We need User data for the email address and Resource data for the name
+	err := r.db.Preload("User").Preload("Resource").
+		Where("status = ? AND start_time = ?", booking.StatusApproved, startTime).
+		Find(&bookings).Error
+	return bookings, err
 }
