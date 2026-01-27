@@ -14,8 +14,8 @@ type IBookingRepo interface {
 	GetPendingOverlaps(resourceID int, start, end time.Time) ([]Booking, error)
 	UpdateBooking(b *Booking) error
 	ApproveBookingAndRejectConflicts(targetBooking *Booking, conflicts []Booking) error
-	GetBookingsByUserID(userID string) ([]Booking, error)
-	GetAllBookings(filters map[string]interface{}) ([]Booking, error)
+	GetBookingsByUserID(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
+	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]Booking, int64, error)
 	GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]Booking, error)
 }
 
@@ -27,34 +27,13 @@ func NewBookingService(repo IBookingRepo) *BookingService {
 	return &BookingService{BookingRepo: repo}
 }
 
-var publicHolidays = map[string]string{
-	"2026-01-26": "Republic Day",
-	"2026-08-15": "Independence Day",
-	"2026-10-02": "Gandhi Jayanti",
-	"2026-12-25": "Christmas",
-}
-
-func isHoliday(t time.Time) error {
-	// 1. Weekend Check
-	if t.Weekday() == time.Saturday || t.Weekday() == time.Sunday {
-		return errors.New("bookings are not allowed on weekends")
-	}
-	// 2. Public Holiday Check
-	dateStr := t.Format("2006-01-02")
-	if _, exists := publicHolidays[dateStr]; exists {
-		return errors.New("bookings are not allowed on public holidays")
-	}
-	return nil
-}
-
 // Helper: Check if a specific slot is valid (Time, History, Weekend)
 func isValidSlot(start time.Time, duration time.Duration) error {
 	end := start.Add(duration)
-	// 9AM - 5PM check
-	if start.Hour() < 9 || start.Hour() > 17 || end.Hour() > 17 || end.Hour() < 9 {
-		return errors.New("outside working hours")
+	if err := utils.IsWorkingHours(start, end); err != nil {
+		return err
 	}
-	return isHoliday(start)
+	return utils.IsHoliday(start)
 }
 
 // Helper: Find next gap
@@ -111,12 +90,12 @@ func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Book
 	}
 
 	// 9AM - 5PM check
-	if req.StartTime.Hour() < 9 || req.StartTime.Hour() > 17 || req.EndTime.Hour() > 17 || req.EndTime.Hour() < 9 {
-		return nil, fmt.Errorf("%w: bookings only allowed between 9AM and 5PM", utils.ErrInvalidInput)
+	if err := utils.IsWorkingHours(req.StartTime, req.EndTime); err != nil {
+		return nil, fmt.Errorf("%w: %v", utils.ErrInvalidInput, err)
 	}
 
 	// Holiday Logic
-	if err := isHoliday(req.StartTime); err != nil {
+	if err := utils.IsHoliday(req.StartTime); err != nil {
 		return nil, fmt.Errorf("%w: %v", utils.ErrInvalidInput, err)
 	}
 
@@ -209,11 +188,34 @@ func (s *BookingService) CancelBooking(id int, userID string) error {
 	return s.BookingRepo.UpdateBooking(booking)
 }
 
-func (s *BookingService) GetMyBookings(userID string) ([]Booking, error) {
-	return s.BookingRepo.GetBookingsByUserID(userID)
+func (s *BookingService) GetMyBookings(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error) {
+	bookings, total, err := s.BookingRepo.GetBookingsByUserID(userID, filters, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+	return s.mapToSummary(bookings), total, nil
 }
 
 // 5. List (Admin)
-func (s *BookingService) GetAllBookings(filters map[string]interface{}) ([]Booking, error) {
-	return s.BookingRepo.GetAllBookings(filters)
+func (s *BookingService) GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error) {
+	bookings, total, err := s.BookingRepo.GetAllBookings(filters, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+	return s.mapToSummary(bookings), total, nil
+}
+
+func (s *BookingService) mapToSummary(bookings []Booking) []BookingSummary {
+	summaries := make([]BookingSummary, len(bookings))
+	for i, b := range bookings {
+		summaries[i] = BookingSummary{
+			ID:           b.ID,
+			ResourceName: fmt.Sprintf("%d", b.ResourceID), // Placeholder: Returning ID as name since we lack join.
+			UserName:     b.UserID,                        // Placeholder: Returning UUID as name.
+			StartTime:    b.StartTime,
+			EndTime:      b.EndTime,
+			Status:       b.Status,
+		}
+	}
+	return summaries
 }

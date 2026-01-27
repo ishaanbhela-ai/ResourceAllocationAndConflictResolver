@@ -31,7 +31,8 @@ func AuthMiddleware() gin.HandlerFunc {
 		tokenString := parts[1]
 		secretKey := os.Getenv("JWT_SECRET")
 		if secretKey == "" {
-			secretKey = "your-secret-key-change-in-production"
+			utils.Error(c, http.StatusInternalServerError, "Internal Server Error")
+			return
 		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

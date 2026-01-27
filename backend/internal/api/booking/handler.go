@@ -11,8 +11,8 @@ import (
 // 1. Service Interface
 type IBookingService interface {
 	CreateBooking(req *BookingCreate, userID string) (*Booking, error)
-	GetMyBookings(userID string) ([]Booking, error)
-	GetAllBookings(filters map[string]interface{}) ([]Booking, error)
+	GetMyBookings(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error)
+	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error)
 	CancelBooking(id int, userID string) error
 	UpdateStatus(id int, req *BookingStatusUpdate, approverID string) error
 }
@@ -50,16 +50,30 @@ func (h *BookingHandler) ListMyBookings(c *gin.Context) {
 		utils.Error(c, http.StatusUnauthorized, "User identity missing")
 		return
 	}
-	bookings, err := h.service.GetMyBookings(userID.(string))
+
+	pagination := utils.GetPaginationParams(c)
+
+	// Optional filtering for Employee as well (status, etc.)
+	filters := make(map[string]interface{})
+	if status := c.Query("status"); status != "" {
+		filters["status"] = status
+	}
+	if resourceID := c.Query("resource_id"); resourceID != "" {
+		filters["resource_id"] = resourceID
+	}
+
+	bookings, total, err := h.service.GetMyBookings(userID.(string), filters, pagination)
 	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, bookings)
+	c.JSON(http.StatusOK, utils.GetPaginatedResponse(bookings, pagination.Page, pagination.Limit, total))
 }
 
 func (h *BookingHandler) ListAllBookings(c *gin.Context) {
-	// Extract optional filters from Query Params
+	pagination := utils.GetPaginationParams(c)
+
+	// Extract filters from Query Params
 	filters := make(map[string]interface{})
 
 	if resourceID := c.Query("resource_id"); resourceID != "" {
@@ -71,12 +85,13 @@ func (h *BookingHandler) ListAllBookings(c *gin.Context) {
 	if userID := c.Query("user_id"); userID != "" {
 		filters["user_id"] = userID
 	}
-	bookings, err := h.service.GetAllBookings(filters)
+
+	bookings, total, err := h.service.GetAllBookings(filters, pagination)
 	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, bookings)
+	c.JSON(http.StatusOK, utils.GetPaginatedResponse(bookings, pagination.Page, pagination.Limit, total))
 }
 
 func (h *BookingHandler) CancelBooking(c *gin.Context) {

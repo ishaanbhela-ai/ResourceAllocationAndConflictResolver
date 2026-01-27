@@ -18,20 +18,26 @@ type User struct {
 	Name       string         `json:"name" binding:"required"`
 	DOB        time.Time      `json:"dob" binding:"required"`
 	EmployeeID string         `json:"employee_id" binding:"required" gorm:"unique"`
-	Role       Role           `json:"role" binding:"required,oneof=ADMIN Employee"`
+	Role       Role           `json:"role" binding:"required,oneof=ADMIN EMPLOYEE"`
 	Email      string         `json:"email" binding:"required,email" gorm:"unique;not null"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
 }
 
-type UserCreate struct {
+type CreateUser struct {
 	User
-	Password string `json:"password" binding:"required"`
+	Password string `json:"password" binding:"required" gorm:"type:text"`
 }
 
-func (UserCreate) TableName() string {
+func (CreateUser) TableName() string {
 	return "users"
+}
+
+type ChangePasswordRequest struct {
+	OldPassword        string `json:"old_password" binding:"required"`
+	NewPassword        string `json:"new_password" binding:"required"`
+	ConfirmNewPassword string `json:"confirm_new_password" binding:"required"`
 }
 
 type LoginRequest struct {

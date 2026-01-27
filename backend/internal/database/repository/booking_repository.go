@@ -95,25 +95,61 @@ func (r *BookingRepository) ApproveBookingAndRejectConflicts(targetBooking *book
 	})
 }
 
-func (r *BookingRepository) GetBookingsByUserID(userID string) ([]booking.Booking, error) {
+func (r *BookingRepository) GetBookingsByUserID(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]booking.Booking, int64, error) {
 	var bookings []booking.Booking
-	if err := r.db.Where("user_id = ?", userID).Order("start_time desc").Find(&bookings).Error; err != nil {
-		return nil, err
+	var total int64
+
+	query := r.db.Model(&booking.Booking{}).Where("user_id = ?", userID)
+
+	// Apply Filters (Status, ResourceID)
+	if val, ok := filters["status"]; ok && val != "" {
+		query = query.Where("status = ?", val)
 	}
-	return bookings, nil
+	if val, ok := filters["resource_id"]; ok && val != "" {
+		query = query.Where("resource_id = ?", val)
+	}
+
+	// Count Total (before pagination)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply Pagination & Order
+	offset := (pagination.Page - 1) * pagination.Limit
+	err := query.Order("start_time desc").
+		Limit(pagination.Limit).
+		Offset(offset).
+		Find(&bookings).Error
+
+	return bookings, total, err
 }
 
-func (r *BookingRepository) GetAllBookings(filters map[string]interface{}) ([]booking.Booking, error) {
+func (r *BookingRepository) GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]booking.Booking, int64, error) {
 	var bookings []booking.Booking
+	var total int64
+
 	query := r.db.Model(&booking.Booking{})
+
 	// Apply Filters
 	for key, value := range filters {
-		query = query.Where(key+" = ?", value)
+		if value != "" {
+			query = query.Where(key+" = ?", value)
+		}
 	}
-	if err := query.Order("created_at desc").Find(&bookings).Error; err != nil {
-		return nil, err
+
+	// Count Total
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return bookings, nil
+
+	// Apply Pagination & Order
+	offset := (pagination.Page - 1) * pagination.Limit
+	err := query.Order("created_at desc").
+		Limit(pagination.Limit).
+		Offset(offset).
+		Find(&bookings).Error
+
+	return bookings, total, err
 }
 
 func (r *BookingRepository) GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]booking.Booking, error) {
