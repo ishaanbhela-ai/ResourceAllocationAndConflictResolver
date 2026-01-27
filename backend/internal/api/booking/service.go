@@ -78,7 +78,7 @@ func (s *BookingService) findNextAvailableSlot(resourceID int, initialStart time
 	}
 }
 
-func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Booking, error) {
+func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*BookingSummary, error) {
 	// A. Validate Time
 	if req.EndTime.Before(req.StartTime) {
 		return nil, fmt.Errorf("%w: end time must be after start time", utils.ErrInvalidInput)
@@ -124,7 +124,25 @@ func (s *BookingService) CreateBooking(req *BookingCreate, userID string) (*Book
 	if err := s.BookingRepo.CreateBooking(booking); err != nil {
 		return nil, err
 	}
-	return booking, nil
+
+	// Fetch the full booking with associations to generate summary
+	fullBooking, err := s.BookingRepo.GetBookingByID(booking.ID)
+	if err != nil {
+		// Log error but maybe return something? Ideally this shouldn't fail.
+		return nil, err
+	}
+
+	// Map to Summary
+	summary := &BookingSummary{
+		ID:           fullBooking.ID,
+		ResourceName: fullBooking.Resource.Name,
+		UserName:     fullBooking.User.Name,
+		StartTime:    fullBooking.StartTime,
+		EndTime:      fullBooking.EndTime,
+		Status:       fullBooking.Status,
+	}
+
+	return summary, nil
 }
 
 func (s *BookingService) UpdateStatus(id int, req *BookingStatusUpdate, approverID string) error {
@@ -210,8 +228,8 @@ func (s *BookingService) mapToSummary(bookings []Booking) []BookingSummary {
 	for i, b := range bookings {
 		summaries[i] = BookingSummary{
 			ID:           b.ID,
-			ResourceName: fmt.Sprintf("%d", b.ResourceID), // Placeholder: Returning ID as name since we lack join.
-			UserName:     b.UserID,                        // Placeholder: Returning UUID as name.
+			ResourceName: b.Resource.Name,
+			UserName:     b.User.Name,
 			StartTime:    b.StartTime,
 			EndTime:      b.EndTime,
 			Status:       b.Status,

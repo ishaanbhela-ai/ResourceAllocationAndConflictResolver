@@ -10,7 +10,7 @@ import (
 
 // 1. Service Interface
 type IBookingService interface {
-	CreateBooking(req *BookingCreate, userID string) (*Booking, error)
+	CreateBooking(req *BookingCreate, userID string) (*BookingSummary, error)
 	GetMyBookings(userID string, filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error)
 	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error)
 	CancelBooking(id int, userID string) error

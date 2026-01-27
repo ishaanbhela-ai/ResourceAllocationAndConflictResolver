@@ -79,9 +79,9 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 		admin.POST("/resources", h.ResourceHandler.CreateResource)    // For Admins to create a new resource
 		admin.PUT("/resources/:id", h.ResourceHandler.UpdateResource) // For Admins to update a resource
 		// admin.PUT("/resource_types/:id", h.ResourceHandler.UpdateResourceType)     // For Admins to update a resource
-		admin.DELETE("/resources/:id", h.ResourceHandler.DeleteResource)           // For Admins to delete a resource
-		admin.DELETE("/resources_types/:id", h.ResourceHandler.DeleteResourceType) // For Admins to delete a resource
-		admin.POST("/resource_types", h.ResourceHandler.CreateResourceType)        // For Admins to create a new resource type
+		admin.DELETE("/resources/:id", h.ResourceHandler.DeleteResource)          // For Admins to delete a resource
+		admin.DELETE("/resource_types/:id", h.ResourceHandler.DeleteResourceType) // For Admins to delete a resource
+		admin.POST("/resource_types", h.ResourceHandler.CreateResourceType)       // For Admins to create a new resource type
 
 		// [NEW] Bookings (Admin)
 		admin.GET("/bookings", h.BookingHandler.ListAllBookings)
