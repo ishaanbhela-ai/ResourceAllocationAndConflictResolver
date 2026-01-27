@@ -62,6 +62,7 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 		protected.POST("/bookings", h.BookingHandler.CreateBooking)
 		protected.GET("/bookings", h.BookingHandler.ListMyBookings)
 		protected.PATCH("/bookings/:id/cancel", h.BookingHandler.CancelBooking)
+		protected.PATCH("/bookings/:id/checkin", h.BookingHandler.CheckIn)
 	}
 
 	// ADMIN ROUTES

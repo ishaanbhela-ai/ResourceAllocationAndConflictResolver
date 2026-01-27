@@ -54,6 +54,38 @@ func main() {
 	bookingService := booking.NewBookingService(bookingRepo)
 	bookingHandler := booking.NewBookingHandler(bookingService)
 
+	// ============================================
+	// BACKGROUND WORKER - Auto-Release Unchecked Bookings
+	// ============================================
+	go func() {
+		// Calculate time to next XX:16:00
+		now := time.Now()
+		nextRun := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 16, 0, 0, now.Location())
+		if nextRun.Before(now) {
+			nextRun = nextRun.Add(1 * time.Hour)
+		}
+
+		log.Printf("Background Worker: Auto-release scheduled for %s", nextRun.Format("15:04:05"))
+		time.Sleep(time.Until(nextRun))
+
+		// 1. Run immediately on wake up
+		log.Println("Background Worker: Running auto-release job...")
+		if err := bookingService.RunAutoReleaseJob(); err != nil {
+			log.Printf("Background Worker Error: %v", err)
+		}
+
+		// 2. Start Ticker for every 1 hour
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			log.Println("Background Worker: Running auto-release job...")
+			if err := bookingService.RunAutoReleaseJob(); err != nil {
+				log.Printf("Background Worker Error: %v", err)
+			}
+		}
+	}()
+
 	appHandlers := routes.NewHandlers(
 		userHandler,
 		resourceHandler,

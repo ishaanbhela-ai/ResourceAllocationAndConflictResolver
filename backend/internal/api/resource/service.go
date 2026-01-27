@@ -113,6 +113,7 @@ func (s *ResourceService) UpdateResource(res *Resource) error {
 }
 
 func (s *ResourceService) DeleteResource(id int) error {
+
 	return s.Repo.DeleteResource(id)
 }
 

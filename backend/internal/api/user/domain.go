@@ -22,7 +22,7 @@ type User struct {
 	Email      string         `json:"email" binding:"required,email" gorm:"unique;not null"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
-	DeletedAt  gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
 type CreateUser struct {
