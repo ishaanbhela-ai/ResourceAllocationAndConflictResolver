@@ -29,14 +29,6 @@ const ResourceDetail = () => {
         }
     };
 
-    const formatProperties = (properties) => {
-        try {
-            return JSON.stringify(properties, null, 2);
-        } catch (e) {
-            return 'Invalid JSON';
-        }
-    };
-
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -100,8 +92,8 @@ const ResourceDetail = () => {
                             </div>
                             <span
                                 className={`px-4 py-2 rounded-full text-sm font-medium ${resource.is_active
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
                                     }`}
                             >
                                 {resource.is_active ? 'Active' : 'Inactive'}
@@ -112,14 +104,6 @@ const ResourceDetail = () => {
                     {/* Details */}
                     <div className="p-8">
                         <div className="space-y-6">
-                            {/* Type ID */}
-                            <div className="border-b border-gray-200 pb-4">
-                                <label className="block text-sm font-medium text-gray-500 mb-1">
-                                    Resource Type ID
-                                </label>
-                                <p className="text-lg text-gray-900">{resource.type_id}</p>
-                            </div>
-
                             {/* Location */}
                             <div className="border-b border-gray-200 pb-4">
                                 <label className="block text-sm font-medium text-gray-500 mb-1">
@@ -129,34 +113,35 @@ const ResourceDetail = () => {
                             </div>
 
                             {/* Description */}
-                            <div className="border-b border-gray-200 pb-4">
-                                <label className="block text-sm font-medium text-gray-500 mb-1">
-                                    Description
-                                </label>
-                                <p className="text-gray-900">
-                                    {resource.description || 'No description available'}
-                                </p>
-                            </div>
+                            {resource.description && (
+                                <div className="border-b border-gray-200 pb-4">
+                                    <label className="block text-sm font-medium text-gray-500 mb-1">
+                                        Description
+                                    </label>
+                                    <p className="text-gray-900">{resource.description}</p>
+                                </div>
+                            )}
 
                             {/* Properties */}
-                            <div className="border-b border-gray-200 pb-4">
-                                <label className="block text-sm font-medium text-gray-500 mb-2">
-                                    Properties
-                                </label>
-                                <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm text-gray-900 border border-gray-200">
-                                    {formatProperties(resource.properties)}
-                                </pre>
-                            </div>
-
-                            {/* Requires Approval */}
-                            <div className="border-b border-gray-200 pb-4">
-                                <label className="block text-sm font-medium text-gray-500 mb-1">
-                                    Requires Approval
-                                </label>
-                                <p className="text-lg text-gray-900">
-                                    {resource.requires_approval ? 'Yes' : 'No'}
-                                </p>
-                            </div>
+                            {resource.properties && Object.keys(resource.properties).length > 0 && (
+                                <div className="border-b border-gray-200 pb-4">
+                                    <label className="block text-sm font-medium text-gray-500 mb-3">
+                                        Properties
+                                    </label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {Object.entries(resource.properties).map(([key, value]) => (
+                                            <div key={key} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                                <div className="text-xs font-medium text-gray-500 uppercase mb-1">
+                                                    {key.replace(/_/g, ' ')}
+                                                </div>
+                                                <div className="text-sm font-semibold text-gray-900">
+                                                    {String(value)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Action Buttons */}

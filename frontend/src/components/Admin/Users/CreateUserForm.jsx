@@ -1,6 +1,3 @@
-// ============================================================
-// FILE: src/components/Admin/Users/CreateUserForm.jsx (FIXED)
-// ============================================================
 import React, { useState } from 'react';
 import axios from '../../../api/axios';
 
@@ -79,17 +76,23 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
         setApiError('');
 
         try {
-            // Convert yyyy-mm-dd → add timestamp (midnight)
-            const dobWithTime = `${formData.dob}T00:00:00+05:30`;
+            // Format date to match database format: YYYY-MM-DD HH:MM:SS+TZ
+            const dobDate = new Date(formData.dob);
+            const dobFormatted = `${formData.dob}T00:00:00+05:30`;
 
             const payload = {
-                ...formData,
-                dob: dobWithTime
+                name: formData.name,
+                email: formData.email,
+                role: formData.role,
+                employee_id: formData.employee_id,
+                dob: dobFormatted,
+                password: formData.password
             };
 
             console.log('Submitting user data:', payload);
 
-            const response = await axios.post('/api/auth/login', payload);
+            // FIXED: Changed from /api/auth/login to /api/admin/users
+            const response = await axios.post('/api/admin/user', payload);
 
             console.log('User created successfully:', response.data);
             onSuccess();
@@ -108,6 +111,7 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
             } else {
                 setApiError('Failed to create user. Please try again.');
             }
+        } finally {
             setLoading(false);
         }
     };

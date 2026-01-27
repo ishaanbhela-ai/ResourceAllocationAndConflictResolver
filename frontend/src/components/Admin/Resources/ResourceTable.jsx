@@ -1,5 +1,3 @@
-// FILE: src/components/Admin/Resources/ResourceTable.jsx
-// ============================================================
 import React, { useState, useEffect } from 'react';
 import axios from '../../../api/axios';
 
@@ -8,7 +6,7 @@ const ResourceTable = ({ onEdit }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [deletingId, setDeletingId] = useState(null);
-    const [pagination, setPagination] = useState({ page: 1, limit: 10 });
+    const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
 
     useEffect(() => {
         fetchResources();
@@ -21,10 +19,33 @@ const ResourceTable = ({ onEdit }) => {
             const response = await axios.get(
                 `/api/resources?page=${pagination.page}&limit=${pagination.limit}`
             );
-            setResources(response.data);
+
+            if (Array.isArray(response.data)) {
+                setResources(response.data);
+            } else if (response.data.data && Array.isArray(response.data.data)) {
+                setResources(response.data.data);
+                if (response.data.meta) {
+                    setPagination(prev => ({
+                        ...prev,
+                        total: response.data.meta.total || 0,
+                        page: response.data.meta.page || prev.page,
+                        limit: response.data.meta.limit || prev.limit
+                    }));
+                }
+            } else if (response.data.resources && Array.isArray(response.data.resources)) {
+                setResources(response.data.resources);
+                setPagination(prev => ({
+                    ...prev,
+                    total: response.data.total || 0
+                }));
+            } else {
+                setResources([]);
+                setError('Unexpected response format from server');
+            }
         } catch (err) {
-            setError('Failed to load resources');
             console.error('Error fetching resources:', err);
+            setResources([]);
+            setError('Failed to load resources');
         } finally {
             setLoading(false);
         }
@@ -34,13 +55,13 @@ const ResourceTable = ({ onEdit }) => {
         if (!window.confirm('Are you sure you want to delete this resource?')) {
             return;
         }
-
         try {
             setDeletingId(id);
             await axios.delete(`/api/admin/resources/${id}`);
             await fetchResources();
         } catch (err) {
-            alert(err.response?.data?.message || 'Failed to delete resource');
+            console.error('Delete error:', err);
+            alert('Failed to delete resource');  // no localhost message
         } finally {
             setDeletingId(null);
         }
@@ -67,10 +88,7 @@ const ResourceTable = ({ onEdit }) => {
 
     if (resources.length === 0) {
         return (
-            <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
+            <div className="bg-white rounded-lg shadow-md p-12 text-center max-w-3xl mx-auto">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">No Resources Found</h3>
                 <p className="text-gray-600">Start by creating your first resource.</p>
             </div>
@@ -79,58 +97,45 @@ const ResourceTable = ({ onEdit }) => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden max-w-3xl mx-auto">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approval</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-16">S.No</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Name</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Location</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-24">Active</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-40">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {resources.map((resource) => (
-                                <tr key={resource.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{resource.name}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{resource.type_id}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{resource.location}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${resource.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                            }`}>
+                            {resources.map((resource, index) => (
+                                <tr key={resource.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-4">{(pagination.page - 1) * pagination.limit + index + 1}</td>
+                                    <td className="px-4 py-4 font-semibold text-gray-900">{resource.name}</td>
+                                    <td className="px-4 py-4 text-gray-700">{resource.location}</td>
+                                    <td className="px-4 py-4">
+                                        <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${resource.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                             {resource.is_active ? 'Yes' : 'No'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${resource.requires_approval ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
-                                            }`}>
-                                            {resource.requires_approval ? 'Required' : 'Not Required'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button
-                                            onClick={() => onEdit(resource)}
-                                            className="text-blue-600 hover:text-blue-900 font-medium mr-4"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(resource.id)}
-                                            disabled={deletingId === resource.id}
-                                            className={`text-red-600 hover:text-red-900 font-medium ${deletingId === resource.id ? 'opacity-50 cursor-not-allowed' : ''
-                                                }`}
-                                        >
-                                            {deletingId === resource.id ? 'Deleting...' : 'Delete'}
-                                        </button>
+                                    <td className="px-4 py-4">
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => onEdit(resource)}
+                                                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(resource.id)}
+                                                disabled={deletingId === resource.id}
+                                                className={`px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg transition-colors ${deletingId === resource.id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-700'}`}
+                                            >
+                                                {deletingId === resource.id ? 'Deleting...' : 'Delete'}
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -143,21 +148,20 @@ const ResourceTable = ({ onEdit }) => {
                 <button
                     onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
                     disabled={pagination.page === 1}
-                    className={`px-6 py-2 rounded-lg font-medium transition ${pagination.page === 1
-                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
+                    className={`px-6 py-2 rounded-lg font-medium transition ${pagination.page === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
                     Previous
                 </button>
-                <span className="text-gray-700 font-medium">Page {pagination.page}</span>
+
+                <span className="text-gray-700 font-medium">
+                    Page {pagination.page}
+                    {pagination.total > 0 && ` of ${Math.ceil(pagination.total / pagination.limit)}`}
+                </span>
+
                 <button
                     onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
                     disabled={resources.length < pagination.limit}
-                    className={`px-6 py-2 rounded-lg font-medium transition ${resources.length < pagination.limit
-                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
+                    className={`px-6 py-2 rounded-lg font-medium transition ${resources.length < pagination.limit ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
                     Next
                 </button>
