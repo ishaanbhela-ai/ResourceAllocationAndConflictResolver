@@ -9,6 +9,11 @@ const ChangePassword = () => {
         new_password: '',
         confirm_new_password: '',
     });
+    const [showPasswords, setShowPasswords] = useState({
+        old_password: false,
+        new_password: false,
+        confirm_new_password: false,
+    });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState('');
@@ -27,6 +32,13 @@ const ChangePassword = () => {
             }));
         }
         setApiError('');
+    };
+
+    const togglePasswordVisibility = (field) => {
+        setShowPasswords((prev) => ({
+            ...prev,
+            [field]: !prev[field],
+        }));
     };
 
     const validate = () => {
@@ -64,9 +76,11 @@ const ChangePassword = () => {
         setApiError('');
 
         try {
-            await axios.patch('/api/user/password', {
+            // API expects old_password, new_password, and confirm_new_password
+            const response = await axios.patch('/api/user/password', {
                 old_password: formData.old_password,
                 new_password: formData.new_password,
+                confirm_new_password: formData.confirm_new_password,
             });
 
             // Show success toast
@@ -74,15 +88,33 @@ const ChangePassword = () => {
 
             // Redirect after 2 seconds
             setTimeout(() => {
-                navigate('/profile');
+                const role = localStorage.getItem('role');
+                // Navigate to correct profile route based on role
+                if (role === 'ADMIN') {
+                    navigate('/admin/profile');
+                } else {
+                    navigate('/profile');
+                }
             }, 2000);
         } catch (err) {
-            if (err.response) {
-                setApiError(err.response.data.message || 'Failed to change password');
+            if (err.response?.data?.error) {
+                setApiError(err.response.data.error);
+            } else if (err.response?.data?.message) {
+                setApiError(err.response.data.message);
             } else {
                 setApiError('Failed to change password. Please try again.');
             }
             setLoading(false);
+        }
+    };
+
+    const handleCancel = () => {
+        const role = localStorage.getItem('role');
+        // Navigate to correct profile route based on role
+        if (role === 'ADMIN') {
+            navigate('/admin/profile');
+        } else {
+            navigate('/profile');
         }
     };
 
@@ -120,16 +152,34 @@ const ChangePassword = () => {
                                 <label htmlFor="old_password" className="block text-sm font-medium text-gray-700 mb-2">
                                     Current Password
                                 </label>
-                                <input
-                                    type="password"
-                                    id="old_password"
-                                    name="old_password"
-                                    value={formData.old_password}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.old_password ? 'border-red-500' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Enter current password"
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPasswords.old_password ? 'text' : 'password'}
+                                        id="old_password"
+                                        name="old_password"
+                                        value={formData.old_password}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.old_password ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                        placeholder="Enter current password"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => togglePasswordVisibility('old_password')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                    >
+                                        {showPasswords.old_password ? (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
                                 {errors.old_password && (
                                     <p className="mt-1 text-sm text-red-600">{errors.old_password}</p>
                                 )}
@@ -140,16 +190,34 @@ const ChangePassword = () => {
                                 <label htmlFor="new_password" className="block text-sm font-medium text-gray-700 mb-2">
                                     New Password
                                 </label>
-                                <input
-                                    type="password"
-                                    id="new_password"
-                                    name="new_password"
-                                    value={formData.new_password}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.new_password ? 'border-red-500' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Enter new password"
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPasswords.new_password ? 'text' : 'password'}
+                                        id="new_password"
+                                        name="new_password"
+                                        value={formData.new_password}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.new_password ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                        placeholder="Enter new password (min. 6 characters)"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => togglePasswordVisibility('new_password')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                    >
+                                        {showPasswords.new_password ? (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
                                 {errors.new_password && (
                                     <p className="mt-1 text-sm text-red-600">{errors.new_password}</p>
                                 )}
@@ -160,16 +228,34 @@ const ChangePassword = () => {
                                 <label htmlFor="confirm_new_password" className="block text-sm font-medium text-gray-700 mb-2">
                                     Confirm New Password
                                 </label>
-                                <input
-                                    type="password"
-                                    id="confirm_new_password"
-                                    name="confirm_new_password"
-                                    value={formData.confirm_new_password}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.confirm_new_password ? 'border-red-500' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Confirm new password"
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPasswords.confirm_new_password ? 'text' : 'password'}
+                                        id="confirm_new_password"
+                                        name="confirm_new_password"
+                                        value={formData.confirm_new_password}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.confirm_new_password ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                        placeholder="Confirm new password"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => togglePasswordVisibility('confirm_new_password')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                    >
+                                        {showPasswords.confirm_new_password ? (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
                                 {errors.confirm_new_password && (
                                     <p className="mt-1 text-sm text-red-600">{errors.confirm_new_password}</p>
                                 )}
@@ -189,8 +275,9 @@ const ChangePassword = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => navigate('/profile')}
-                                    className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+                                    onClick={handleCancel}
+                                    disabled={loading}
+                                    className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>

@@ -8,6 +8,7 @@ import axios from '../../../api/axios';
 const BookingModal = ({ resource, onClose }) => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
+        date: '',
         start_time: '',
         end_time: '',
         purpose: '',
@@ -35,6 +36,10 @@ const BookingModal = ({ resource, onClose }) => {
     const validate = () => {
         const newErrors = {};
 
+        if (!formData.date) {
+            newErrors.date = 'Date is required';
+        }
+
         if (!formData.start_time) {
             newErrors.start_time = 'Start time is required';
         }
@@ -44,9 +49,7 @@ const BookingModal = ({ resource, onClose }) => {
         }
 
         if (formData.start_time && formData.end_time) {
-            const start = new Date(formData.start_time);
-            const end = new Date(formData.end_time);
-            if (end <= start) {
+            if (formData.end_time <= formData.start_time) {
                 newErrors.end_time = 'End time must be after start time';
             }
         }
@@ -73,8 +76,8 @@ const BookingModal = ({ resource, onClose }) => {
         try {
             await axios.post('/api/bookings', {
                 resource_id: resource.id,
-                start_time: formData.start_time,
-                end_time: formData.end_time,
+                start_time: `${formData.date}T${formData.start_time}:00+05:30`,
+                end_time: `${formData.date}T${formData.end_time}:00+05:30`,
                 purpose: formData.purpose,
             });
 
@@ -136,42 +139,64 @@ const BookingModal = ({ resource, onClose }) => {
                                 </div>
                             )}
 
-                            {/* Start Time */}
+                            {/* Date */}
                             <div>
-                                <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Start Time
+                                <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Date
                                 </label>
                                 <input
-                                    type="datetime-local"
-                                    id="start_time"
-                                    name="start_time"
-                                    value={formData.start_time}
+                                    type="date"
+                                    id="date"
+                                    name="date"
+                                    value={formData.date}
                                     onChange={handleChange}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.start_time ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.date ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                 />
-                                {errors.start_time && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.start_time}</p>
+                                {errors.date && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.date}</p>
                                 )}
                             </div>
 
-                            {/* End Time */}
-                            <div>
-                                <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
-                                    End Time
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    id="end_time"
-                                    name="end_time"
-                                    value={formData.end_time}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.end_time ? 'border-red-500' : 'border-gray-300'
-                                        }`}
-                                />
-                                {errors.end_time && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>
-                                )}
+                            {/* Time Inputs Side by Side */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Start Time */}
+                                <div>
+                                    <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Start Time
+                                    </label>
+                                    <input
+                                        type="time"
+                                        id="start_time"
+                                        name="start_time"
+                                        value={formData.start_time}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.start_time ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {errors.start_time && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.start_time}</p>
+                                    )}
+                                </div>
+
+                                {/* End Time */}
+                                <div>
+                                    <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
+                                        End Time
+                                    </label>
+                                    <input
+                                        type="time"
+                                        id="end_time"
+                                        name="end_time"
+                                        value={formData.end_time}
+                                        onChange={handleChange}
+                                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${errors.end_time ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {errors.end_time && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Purpose */}
@@ -200,8 +225,8 @@ const BookingModal = ({ resource, onClose }) => {
                                     type="submit"
                                     disabled={loading}
                                     className={`flex-1 py-3 px-4 rounded-lg font-medium text-white transition ${loading
-                                            ? 'bg-blue-400 cursor-not-allowed'
-                                            : 'bg-blue-600 hover:bg-blue-700'
+                                        ? 'bg-blue-400 cursor-not-allowed'
+                                        : 'bg-blue-600 hover:bg-blue-700'
                                         }`}
                                 >
                                     {loading ? 'Creating Booking...' : 'Create Booking'}
