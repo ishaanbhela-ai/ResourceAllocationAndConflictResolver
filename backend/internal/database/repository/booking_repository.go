@@ -212,3 +212,13 @@ func (r *BookingRepository) GetApprovedBookingsStartingAt(startTime time.Time) (
 		Find(&bookings).Error
 	return bookings, err
 }
+
+func (r *BookingRepository) CancelExpiredPendingBookings(cutoffTime time.Time) error {
+	// Update pending bookings to cancelled if their start time has passed
+	return r.db.Model(&booking.Booking{}).
+		Where("status = ? AND start_time < ?", booking.StatusPending, cutoffTime).
+		Updates(map[string]interface{}{
+			"status":           booking.StatusCancelled,
+			"rejection_reason": "Not seen by admin",
+		}).Error
+}

@@ -78,10 +78,13 @@ func main() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
 
-		for range ticker.C {
-			log.Println("Background Worker: Running auto-release job...")
-			if err := bookingService.RunAutoReleaseJob(); err != nil {
-				log.Printf("Background Worker Error: %v", err)
+		for t := range ticker.C {
+			h := t.Hour()
+			if h >= 9 && h <= 17 {
+				log.Println("Background Worker: Running auto-release job...")
+				if err := bookingService.RunAutoReleaseJob(); err != nil {
+					log.Printf("Background Worker Error: %v", err)
+				}
 			}
 		}
 
@@ -116,20 +119,37 @@ func main() {
 		log.Printf("Background Worker: Reminders scheduled for %s", nextRun.Format("15:04:05"))
 		time.Sleep(time.Until(nextRun))
 
-		// 1. Run immediately on wake up
-		log.Println("Background Worker: Sending check-in reminders...")
-		if err := bookingService.SendCheckInReminders(); err != nil {
-			log.Printf("Background Worker Error (Reminders): %v", err)
-		}
-
-		// 2. Start Ticker for every 1 hour
+		// Start Ticker for every 1 hour
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
 
-		for range ticker.C {
-			log.Println("Background Worker: Sending check-in reminders...")
-			if err := bookingService.SendCheckInReminders(); err != nil {
-				log.Printf("Background Worker Error (Reminders): %v", err)
+		for t := range ticker.C {
+			h := t.Hour()
+			if h >= 9 && h <= 17 {
+				log.Println("Background Worker: Sending check-in reminders...")
+				if err := bookingService.SendCheckInReminders(); err != nil {
+					log.Printf("Background Worker Error (Reminders): %v", err)
+				}
+			}
+		}
+	}()
+
+	// ============================================
+	// BACKGROUND WORKER - Auto-Cancel Pending Bookings
+	// ============================================
+	go func() {
+		// Run every 1 hour
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for t := range ticker.C {
+			// Extract current hour
+			h := t.Hour()
+			// Run only between 9 AM and 5 PM (inclusive)
+			if h >= 9 && h <= 17 {
+				log.Println("Background Worker: Running auto-cancellation job...")
+				if err := bookingService.RunAutoCancellationJob(); err != nil {
+					log.Printf("Background Worker Error (Cancellation): %v", err)
+				}
 			}
 		}
 	}()
