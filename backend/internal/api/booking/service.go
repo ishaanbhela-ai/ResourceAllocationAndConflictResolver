@@ -22,6 +22,7 @@ type IBookingRepo interface {
 	CheckInBooking(bookingId int) error
 	ReleaseUncheckedBookings(cutoffTime time.Time) error
 	GetApprovedBookingsStartingAt(startTime time.Time) ([]Booking, error)
+	CancelExpiredPendingBookings(cutoffTime time.Time) error
 }
 
 type BookingService struct {
@@ -367,4 +368,9 @@ func (s *BookingService) SendCheckInReminders() error {
 	}
 
 	return nil
+}
+
+func (s *BookingService) RunAutoCancellationJob() error {
+	// Cancel any pending booking where start_time < now
+	return s.BookingRepo.CancelExpiredPendingBookings(time.Now())
 }
