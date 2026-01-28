@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: 'https://bitable-unintentional-reginald.ngrok-free.dev', // Update with your backend URL
+    baseURL: 'http://localhost:8080', // Update with your backend URL
     headers: {
         'Content-Type': 'application/json',
     },

@@ -16,11 +16,15 @@ const ProfileView = () => {
         try {
             setLoading(true);
             const response = await axios.get('/api/user');
+
+            // API returns user data directly (not nested)
             setUser(response.data);
             setError('');
         } catch (err) {
-            if (err.response) {
-                setError(err.response.data.message || 'Failed to load profile');
+            if (err.response?.data?.error) {
+                setError(err.response.data.error);
+            } else if (err.response?.data?.message) {
+                setError(err.response.data.message);
             } else {
                 setError('Failed to load profile. Please try again.');
             }
@@ -41,7 +45,7 @@ const ProfileView = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+            <div className="flex items-center justify-center py-16">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                     <p className="mt-4 text-gray-600">Loading profile...</p>
@@ -52,7 +56,7 @@ const ProfileView = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+            <div className="flex items-center justify-center py-16 px-4">
                 <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
                     <div className="text-center">
                         <div className="text-red-500 text-5xl mb-4">⚠️</div>
@@ -71,7 +75,7 @@ const ProfileView = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 py-8 px-4">
+        <div className="py-8 px-4">
             <div className="max-w-3xl mx-auto">
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     {/* Header */}
@@ -140,7 +144,15 @@ const ProfileView = () => {
                         {/* Action Buttons */}
                         <div className="mt-8 flex gap-4">
                             <button
-                                onClick={() => navigate('/profile/change-password')}
+                                onClick={() => {
+                                    const role = localStorage.getItem('role');
+                                    // Navigate to correct change password route based on role
+                                    if (role === 'ADMIN') {
+                                        navigate('/admin/profile/change-password');
+                                    } else {
+                                        navigate('/profile/change-password');
+                                    }
+                                }}
                                 className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
                             >
                                 Change Password

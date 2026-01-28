@@ -1,65 +1,69 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from '../../../api/axios';
-import ResourceCard from './ResourceCard';
-import Filters from './Filters';
 
 const ResourceList = () => {
+    const navigate = useNavigate();
     const [resources, setResources] = useState([]);
+    const [filteredResources, setFilteredResources] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filters, setFilters] = useState({
-        type_id: '',
-        location: '',
-        prop_capacity: '',
-    });
-    const [pagination, setPagination] = useState({
-        page: 1,
-        limit: 10,
-    });
+    const [searchTerm, setSearchTerm] = useState('');
+    const [propertySearch, setPropertySearch] = useState('');
 
     useEffect(() => {
         fetchResources();
-    }, [pagination.page, filters]);
+    }, []);
+
+    useEffect(() => {
+        filterResources();
+    }, [searchTerm, propertySearch, resources]);
 
     const fetchResources = async () => {
         try {
             setLoading(true);
-            setError('');
-
-            // Build query params only for provided filters
-            const params = new URLSearchParams({
-                page: pagination.page.toString(),
-                limit: pagination.limit.toString(),
-            });
-
-            if (filters.type_id) params.append('type_id', filters.type_id);
-            if (filters.location) params.append('location', filters.location);
-            if (filters.prop_capacity) params.append('prop_capacity', filters.prop_capacity);
-
-            const response = await axios.get(`/api/resources?${params.toString()}`);
-            setResources(response.data);
+            const response = await axios.get('/api/resources');
+            const resourceData = Array.isArray(response.data)
+                ? response.data
+                : response.data.resources || response.data.data || [];
+            setResources(resourceData);
+            setFilteredResources(resourceData);
         } catch (err) {
-            setError('Failed to load resources. Please try again.');
+            setError('Failed to load resources');
             console.error('Error fetching resources:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleFilterChange = (newFilters) => {
-        setFilters(newFilters);
-        setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1 on filter change
+    const filterResources = () => {
+        let filtered = resources;
+
+        // Filter by name or location
+        if (searchTerm) {
+            filtered = filtered.filter(resource =>
+                resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                resource.location.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // Filter by property
+        if (propertySearch) {
+            filtered = filtered.filter(resource => {
+                const properties = resource.properties || {};
+                const propertiesString = JSON.stringify(properties).toLowerCase();
+                return propertiesString.includes(propertySearch.toLowerCase());
+            });
+        }
+
+        setFilteredResources(filtered);
     };
 
-    const handleNextPage = () => {
-        setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
+    const handleViewDetails = (resourceId) => {
+        navigate(`/resources/${resourceId}`);
     };
 
-    const handlePrevPage = () => {
-        setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }));
-    };
-
-    if (loading && resources.length === 0) {
+    if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
                 <div className="text-center">
@@ -74,63 +78,149 @@ const ResourceList = () => {
         <div className="min-h-screen bg-gray-100 py-8 px-4">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Available Resources</h1>
-                    <p className="text-gray-600 mt-2">Browse and book available resources</p>
+                <div className="mb-6">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Available Resources</h1>
+                    <p className="text-gray-600">Browse and book available resources</p>
                 </div>
 
-                {/* Filters */}
-                <Filters onFilterChange={handleFilterChange} filters={filters} />
+                {/* Search and Filter Section */}
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Search by Name/Location */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Search by Name or Location
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Search resources..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+
+                        {/* Search by Property */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Search by Property
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g., capacity, projector, wifi..."
+                                value={propertySearch}
+                                onChange={(e) => setPropertySearch(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Results Count and Reset */}
+                    <div className="mt-4 flex items-center justify-between">
+                        <div className="text-sm text-gray-600">
+                            Showing {filteredResources.length} of {resources.length} resources
+                        </div>
+                        {(searchTerm || propertySearch) && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setPropertySearch('');
+                                }}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition"
+                            >
+                                Reset Filters
+                            </button>
+                        )}
+                    </div>
+                </div>
 
                 {/* Error Message */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                    <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6">
                         {error}
                     </div>
                 )}
 
-                {/* Resource Cards Grid */}
-                {resources.length === 0 && !loading ? (
+                {/* Resources Grid */}
+                {filteredResources.length === 0 ? (
                     <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                        <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                        </svg>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">No Resources Found</h3>
-                        <p className="text-gray-600">Try adjusting your filters to see more results.</p>
+                        <div className="text-gray-400 text-5xl mb-4">🔍</div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">No Resources Found</h3>
+                        <p className="text-gray-600">
+                            {searchTerm || propertySearch
+                                ? 'Try adjusting your search filters'
+                                : 'No resources available at the moment'}
+                        </p>
                     </div>
                 ) : (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {resources.map((resource) => (
-                                <ResourceCard key={resource.id} resource={resource} />
-                            ))}
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredResources.map((resource) => (
+                            <div
+                                key={resource.id}
+                                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
+                            >
+                                {/* Card Header */}
+                                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                                    <h3 className="text-xl font-bold text-white">{resource.name}</h3>
+                                    <p className="text-blue-100 text-sm mt-1">{resource.location}</p>
+                                </div>
 
-                        {/* Pagination */}
-                        <div className="mt-8 flex justify-center items-center gap-4">
-                            <button
-                                onClick={handlePrevPage}
-                                disabled={pagination.page === 1}
-                                className={`px-6 py-2 rounded-lg font-medium transition ${pagination.page === 1
-                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                    }`}
-                            >
-                                Previous
-                            </button>
-                            <span className="text-gray-700 font-medium">Page {pagination.page}</span>
-                            <button
-                                onClick={handleNextPage}
-                                disabled={resources.length < pagination.limit}
-                                className={`px-6 py-2 rounded-lg font-medium transition ${resources.length < pagination.limit
-                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                    }`}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    </>
+                                {/* Card Body */}
+                                <div className="p-6">
+                                    {/* Status Badge */}
+                                    <div className="mb-4">
+                                        <span
+                                            className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${resource.is_active
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-red-100 text-red-800'
+                                                }`}
+                                        >
+                                            {resource.is_active ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </div>
+
+                                    {/* Properties */}
+                                    {resource.properties && Object.keys(resource.properties).length > 0 && (
+                                        <div className="mb-4">
+                                            <p className="text-xs font-medium text-gray-500 mb-2">Properties:</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {Object.entries(resource.properties).slice(0, 3).map(([key, value]) => (
+                                                    <span
+                                                        key={key}
+                                                        className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
+                                                    >
+                                                        {key}: {String(value)}
+                                                    </span>
+                                                ))}
+                                                {Object.keys(resource.properties).length > 3 && (
+                                                    <span className="inline-block bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs">
+                                                        +{Object.keys(resource.properties).length - 3} more
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Approval Badge */}
+                                    {resource.requires_approval && (
+                                        <div className="mb-4">
+                                            <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">
+                                                Requires Approval
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Action Button */}
+                                    <button
+                                        onClick={() => handleViewDetails(resource.id)}
+                                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                                    >
+                                        View Details
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
             </div>
         </div>
