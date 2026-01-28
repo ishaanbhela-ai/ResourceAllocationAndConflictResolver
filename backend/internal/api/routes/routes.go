@@ -31,13 +31,14 @@ func NewHandlers(userHandler *user.UserHandler, resourceHandler *resource.Resour
 func SetupRoutes(h *Handlers) *gin.Engine {
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
 	}))
+
 	// HEALTH CHECK
 	router.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"status": "OK"})

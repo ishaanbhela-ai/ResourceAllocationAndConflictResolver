@@ -81,7 +81,6 @@ const ProfileView = () => {
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
                         <h1 className="text-3xl font-bold text-white">My Profile</h1>
-                        <p className="text-blue-100 mt-1">View your account information</p>
                     </div>
 
                     {/* Profile Information */}
@@ -113,8 +112,8 @@ const ProfileView = () => {
                                     Role
                                 </label>
                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${user?.role === 'ADMIN'
-                                        ? 'bg-purple-100 text-purple-800'
-                                        : 'bg-green-100 text-green-800'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : 'bg-green-100 text-green-800'
                                     }`}>
                                     {user?.role || 'N/A'}
                                 </span>

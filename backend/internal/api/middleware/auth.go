@@ -14,6 +14,12 @@ import (
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			utils.Error(c, http.StatusUnauthorized, "Authorization token required")
@@ -69,6 +75,11 @@ func AuthMiddleware() gin.HandlerFunc {
 
 func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
 		role, exists := c.Get("userRole")
 		if !exists || role != "ADMIN" {
 			utils.Error(c, http.StatusForbidden, "Access denied: Admins only")

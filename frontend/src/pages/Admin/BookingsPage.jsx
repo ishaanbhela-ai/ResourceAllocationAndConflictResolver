@@ -37,7 +37,6 @@ const BookingsPage = () => {
                 <div className="mb-8 flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Booking Approvals</h1>
-                        <p className="text-gray-600 mt-2">Review and manage booking requests</p>
                     </div>
                     <button
                         onClick={() => navigate('/admin')}

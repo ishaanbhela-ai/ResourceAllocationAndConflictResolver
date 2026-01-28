@@ -118,7 +118,6 @@ const UserLayout = () => {
                                 <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
                                     {navItems.find(item => item.path === location.pathname)?.label || 'Resources'}
                                 </h2>
-                                <p className="text-xs text-gray-500 mt-0.5">Welcome back to your workspace</p>
                             </div>
                         </div>
 

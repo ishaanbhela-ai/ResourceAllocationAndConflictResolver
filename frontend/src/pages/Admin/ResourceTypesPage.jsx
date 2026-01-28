@@ -62,9 +62,7 @@ const ResourceTypesPage = () => {
                                     </div>
                                     <h1 className="text-3xl font-bold text-gray-900">Resource Types</h1>
                                 </div>
-                                <p className="text-gray-600 ml-15">
-                                    Manage resource type definitions and their custom properties
-                                </p>
+
                             </div>
                             <div className="flex gap-3">
 
