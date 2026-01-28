@@ -62,7 +62,7 @@ func (r *ResourceRepository) GetAllResources(typeID *int, location string, props
 			NOT EXISTS (
 				SELECT 1 FROM bookings b
 				WHERE b.resource_id = resources.id
-				AND b.status = 'APPROVED'
+				AND b.status = 'approved'
 				AND (b.start_time < ? AND b.end_time > ?)
 			)
 		`, *endTime, *startTime)
