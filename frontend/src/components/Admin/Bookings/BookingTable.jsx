@@ -312,16 +312,16 @@ const BookingTable = ({ onApprove, onReject }) => {
                     {/* Table */}
                     <div className="overflow-x-auto shadow-md rounded-lg">
                         <table className="min-w-full bg-white border border-gray-200">
-                            <thead className="bg-gray-100 border-b border-gray-200">
+                            <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-700">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Resource</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Username</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Start Time</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">End Time</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Resource</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Username</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Start Time</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">End Time</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">

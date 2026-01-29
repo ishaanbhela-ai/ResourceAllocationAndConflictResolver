@@ -6,6 +6,7 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [deletingId, setDeletingId] = useState(null);
+    const [expandedId, setExpandedId] = useState(null);
 
     useEffect(() => {
         fetchTypes();
@@ -25,6 +26,13 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
                     (response.data.resource_types && Array.isArray(response.data.resource_types)) ? response.data.resource_types : [];
 
             console.log('Parsed types data:', typesData);
+
+            // Debug: Log the first item to see its structure
+            if (typesData.length > 0) {
+                console.log('First type object:', typesData[0]);
+                console.log('Available keys:', Object.keys(typesData[0]));
+            }
+
             setTypes(typesData);
         } catch (err) {
             console.error('Error fetching resource types:', err);
@@ -53,24 +61,42 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
         }
     };
 
+    const toggleExpand = (typeId) => {
+        setExpandedId(expandedId === typeId ? null : typeId);
+    };
+
     const formatPropertyValue = (value) => {
         // Format data types for display
         const typeMap = {
             'string': 'Text',
             'number': 'Number',
             'int': 'Integer',
+            'integer': 'Integer',
             'boolean': 'True/False',
             'date': 'Date'
         };
         return typeMap[value] || value;
     };
 
-    const renderSchemaProperties = (schema) => {
-        console.log('Schema received:', schema);
+    const getSchemaFromType = (type) => {
+        // Try different possible property names
+        return type.schema_definition ||
+            type.schemaDefinition ||
+            type.schema ||
+            type.properties ||
+            type.attributes ||
+            null;
+    };
+
+    const renderSchemaProperties = (type) => {
+        console.log('Rendering schema for type:', type);
+
+        const schema = getSchemaFromType(type);
+        console.log('Schema found:', schema);
         console.log('Schema type:', typeof schema);
 
         if (!schema) {
-            return <span className="text-gray-400 text-sm">No properties</span>;
+            return <span className="text-gray-400 text-sm">No properties defined</span>;
         }
 
         // If schema is a string, try to parse it
@@ -93,7 +119,7 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
         console.log('Schema entries:', entries);
 
         if (entries.length === 0) {
-            return <span className="text-gray-400 text-sm">No properties</span>;
+            return <span className="text-gray-400 text-sm">No properties defined</span>;
         }
 
         return (
@@ -109,6 +135,18 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
                 ))}
             </div>
         );
+    };
+
+    const getPropertyCount = (type) => {
+        const schema = getSchemaFromType(type);
+        if (!schema) return 0;
+
+        try {
+            const schemaObj = typeof schema === 'string' ? JSON.parse(schema) : schema;
+            return Object.keys(schemaObj || {}).length;
+        } catch (e) {
+            return 0;
+        }
     };
 
     if (loading && types.length === 0) {
@@ -183,65 +221,90 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
     }
 
     return (
-        <div className="space-y-4">
-            {types.map((type) => (
-                <div
-                    key={type.id}
-                    className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow border border-gray-100 overflow-hidden"
-                >
-                    <div className="p-6">
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                                {/* Type Name */}
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {types.map((type) => {
+                const propertyCount = getPropertyCount(type);
+
+                return (
+                    <div
+                        key={type.id}
+                        className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden"
+                    >
+                        {/* Square Card Content */}
+                        <div
+                            className="aspect-square cursor-pointer hover:bg-gray-50 transition-colors flex flex-col"
+                            onClick={() => toggleExpand(type.id)}
+                        >
+                            <div className="p-4 flex-1 flex flex-col">
+                                {/* Icon and Title */}
+                                <div className="flex flex-col items-center text-center mb-3">
+                                    <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-3">
                                         <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                         </svg>
                                     </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-gray-900">{type.type}</h3>
-                                        <p className="text-sm text-gray-500">Resource Type</p>
-                                    </div>
+                                    <h3 className="text-base font-bold text-gray-900 line-clamp-2">{type.type}</h3>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {propertyCount} {propertyCount === 1 ? 'property' : 'properties'}
+                                    </p>
                                 </div>
 
-                                {/* Properties */}
+                                {/* Action Buttons */}
+                                <div className="mt-auto flex flex-col gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDelete(type.id, type.type);
+                                        }}
+                                        disabled={deletingId === type.id}
+                                        className={`w-full px-3 py-2 rounded-lg font-medium transition flex items-center justify-center gap-1.5 text-sm ${deletingId === type.id
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-red-50 text-red-600 hover:bg-red-100'
+                                            }`}
+                                    >
+                                        {deletingId === type.id ? (
+                                            <>
+                                                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Deleting
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Delete
+                                            </>
+                                        )}
+                                    </button>
 
-                            </div>
-
-                            {/* Actions */}
-                            <div className="ml-6">
-                                <button
-                                    onClick={() => handleDelete(type.id, type.type)}
-                                    disabled={deletingId === type.id}
-                                    className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${deletingId === type.id
-                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        : 'bg-red-50 text-red-600 hover:bg-red-100'
-                                        }`}
-                                    title="Delete resource type"
-                                >
-                                    {deletingId === type.id ? (
-                                        <>
-                                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Deleting...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            Delete
-                                        </>
-                                    )}
-                                </button>
+                                    <div className="text-center text-gray-400">
+                                        <svg
+                                            className={`w-4 h-4 mx-auto transition-transform ${expandedId === type.id ? 'rotate-180' : ''}`}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                        <span className="text-xs">View Details</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Expandable Details */}
+                        {expandedId === type.id && (
+                            <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                <h4 className="text-sm font-semibold text-gray-700 mb-3">Properties</h4>
+                                {renderSchemaProperties(type)}
+                            </div>
+                        )}
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };

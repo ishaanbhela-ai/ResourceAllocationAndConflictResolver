@@ -111,6 +111,12 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
         setShowPropertyForm(true);
     };
 
+    const handleBackgroundClick = (e) => {
+        if (e.target === e.currentTarget) {
+            onClose();
+        }
+    };
+
     const dataTypes = [
         { value: 'string', label: 'Text' },
         { value: 'number', label: 'Number' },
@@ -120,7 +126,10 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
     ];
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={handleBackgroundClick}
+        >
             <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 flex items-center justify-between">
@@ -273,8 +282,8 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
                                 type="submit"
                                 disabled={loading}
                                 className={`flex-1 py-3 px-4 rounded-lg font-semibold text-white transition shadow-md ${loading
-                                        ? 'bg-blue-400 cursor-not-allowed'
-                                        : 'bg-blue-600 hover:bg-blue-700 transform hover:-translate-y-0.5'
+                                    ? 'bg-blue-400 cursor-not-allowed'
+                                    : 'bg-blue-600 hover:bg-blue-700 transform hover:-translate-y-0.5'
                                     }`}
                             >
                                 {loading ? (

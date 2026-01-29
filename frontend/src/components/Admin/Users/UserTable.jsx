@@ -103,18 +103,18 @@ const UserTable = ({ onEdit, refreshTrigger }) => {
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gradient-to-r from-blue-600 to-blue-700">
                                 <tr>
-                                    <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-20">
+                                    <th className="px-8 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider w-20">
                                         S.No
                                     </th>
-                                    <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th className="px-8 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                         Name
                                     </th>
-                                    <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th className="px-8 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                         Employee ID
                                     </th>
-                                    <th className="px-8 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th className="px-8 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                         Role
                                     </th>
                                 </tr>

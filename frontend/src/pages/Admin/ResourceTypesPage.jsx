@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TypeTable from '../../components/Admin/ResourceTypes/TypeTable';
 import CreateTypeForm from '../../components/Admin/ResourceTypes/CreateTypeForm';
-import APIDebugger from '../../components/Admin/ResourceTypes/APIDebugger';
 
 const ResourceTypesPage = () => {
     const navigate = useNavigate();
