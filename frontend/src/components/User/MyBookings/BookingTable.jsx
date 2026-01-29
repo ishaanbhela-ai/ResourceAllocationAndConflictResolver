@@ -39,10 +39,28 @@ const BookingTable = () => {
 
         try {
             setCancellingId(bookingId);
+
+            // Call the cancel API
             await axios.patch(`/api/bookings/${bookingId}/cancel`);
-            await fetchBookings();
+
+            // Update the local state immediately to reflect the change
+            setBookings(prevBookings =>
+                prevBookings.map(booking =>
+                    booking.id === bookingId
+                        ? { ...booking, status: 'cancelled' }
+                        : booking
+                )
+            );
+
+            // Show success message
+            alert('Booking cancelled successfully');
+
         } catch (err) {
+            console.error('Error cancelling booking:', err);
             alert(err.response?.data?.message || 'Failed to cancel booking');
+
+            // Refresh bookings to ensure we have the correct state
+            await fetchBookings();
         } finally {
             setCancellingId(null);
         }
@@ -67,39 +85,57 @@ const BookingTable = () => {
         });
     };
 
-    const getStatusButton = (status) => {
+    const getStatusBadge = (status) => {
         const statusConfig = {
             pending: {
                 gradient: 'bg-gradient-to-r from-amber-400 to-orange-500',
                 shadow: 'shadow-amber-200',
-                label: 'Pending'
+                label: 'Pending',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                )
             },
             approved: {
                 gradient: 'bg-gradient-to-r from-emerald-400 to-green-500',
                 shadow: 'shadow-green-200',
-                label: 'Approved'
+                label: 'Approved',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                )
             },
             rejected: {
                 gradient: 'bg-gradient-to-r from-rose-400 to-red-500',
                 shadow: 'shadow-red-200',
-                label: 'Rejected'
+                label: 'Rejected',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                )
             },
             cancelled: {
                 gradient: 'bg-gradient-to-r from-slate-400 to-gray-500',
                 shadow: 'shadow-gray-200',
-                label: 'Cancelled'
+                label: 'Cancelled',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                )
             }
         };
 
         const config = statusConfig[status] || statusConfig.pending;
 
         return (
-            <button
-                disabled
-                className={`${config.gradient} ${config.shadow} shadow-lg text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide cursor-default transition-all hover:scale-105`}
-            >
+            <span className={`${config.gradient} ${config.shadow} shadow-lg text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide inline-flex items-center gap-2`}>
+                {config.icon}
                 {config.label}
-            </button>
+            </span>
         );
     };
 
@@ -311,27 +347,46 @@ const BookingTable = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {getStatusButton(booking.status)}
+                                                {getStatusBadge(booking.status)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {booking.status === 'pending' ? (
+                                                {booking.status === 'pending' || booking.status === 'approved' ? (
                                                     <button
                                                         onClick={() => handleCancel(booking.id)}
                                                         disabled={cancellingId === booking.id}
-                                                        className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all shadow-lg ${cancellingId === booking.id
-                                                            ? 'bg-gray-400 cursor-not-allowed shadow-gray-200'
-                                                            : 'bg-gradient-to-r from-rose-500 to-red-600 text-white hover:from-rose-600 hover:to-red-700 hover:scale-105 shadow-red-200'
+                                                        className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all shadow-lg inline-flex items-center gap-2 ${cancellingId === booking.id
+                                                                ? 'bg-gray-400 cursor-not-allowed shadow-gray-200'
+                                                                : 'bg-gradient-to-r from-rose-500 to-red-600 text-white hover:from-rose-600 hover:to-red-700 hover:scale-105 shadow-red-200'
                                                             }`}
                                                     >
-                                                        {cancellingId === booking.id ? 'Cancelling...' : 'Cancel'}
+                                                        {cancellingId === booking.id ? (
+                                                            <>
+                                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                                Cancelling...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                </svg>
+                                                                Cancel Booking
+                                                            </>
+                                                        )}
                                                     </button>
-                                                ) : booking.status === 'approved' || booking.status === 'cancelled' || booking.status === 'rejected' ? (
-                                                    <button
-                                                        disabled
-                                                        className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow-lg shadow-green-200 cursor-default hover:scale-105 transition-all"
-                                                    >
-                                                        Done
-                                                    </button>
+                                                ) : booking.status === 'cancelled' ? (
+                                                    <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500 cursor-not-allowed">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                        Already Cancelled
+                                                    </span>
+                                                ) : booking.status === 'rejected' ? (
+                                                    <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-500 cursor-not-allowed">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                        Rejected
+                                                    </span>
                                                 ) : null}
                                             </td>
                                         </tr>
@@ -348,8 +403,8 @@ const BookingTable = () => {
                                 onClick={handlePrevPage}
                                 disabled={pagination.page === 1}
                                 className={`px-6 py-3 rounded-lg font-bold uppercase tracking-wide transition-all shadow-lg ${pagination.page === 1
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-gray-100'
-                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 shadow-blue-200'
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-gray-100'
+                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 shadow-blue-200'
                                     }`}
                             >
                                 ← Previous
@@ -361,8 +416,8 @@ const BookingTable = () => {
                                 onClick={handleNextPage}
                                 disabled={bookings.length < pagination.limit}
                                 className={`px-6 py-3 rounded-lg font-bold uppercase tracking-wide transition-all shadow-lg ${bookings.length < pagination.limit
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-gray-100'
-                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 shadow-blue-200'
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-gray-100'
+                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 shadow-blue-200'
                                     }`}
                             >
                                 Next →

@@ -1,9 +1,7 @@
-// ============================================================
-// FILE: src/layouts/UserLayout.jsx (UPDATED - Sidebar Layout)
-// ============================================================
+
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import axios from '../api/axios'; // Make sure this path matches your axios instance
+import axios from '../api/axios';
 
 const UserLayout = () => {
     const navigate = useNavigate();
@@ -12,20 +10,20 @@ const UserLayout = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Fetch user details from your backend
+
         const fetchUserDetails = async () => {
             try {
                 const response = await axios.get('/api/user');
 
                 if (response.data.success || response.data) {
-                    // Handle different response structures
+
                     const userData = response.data.user || response.data.data || response.data;
                     const name = userData.name || userData.username || userData.fullName || 'User';
                     setUserName(name);
                 }
             } catch (error) {
                 console.error('Error fetching user details:', error);
-                // Set default name on error
+
                 setUserName('User');
             } finally {
                 setIsLoading(false);

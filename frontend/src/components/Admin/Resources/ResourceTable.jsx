@@ -100,13 +100,13 @@ const ResourceTable = ({ onEdit }) => {
             <div className="bg-white rounded-lg shadow-md overflow-hidden max-w-3xl mx-auto">
                 <div className="overflow-x-auto">
                     <table className="w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gradient-to-r from-blue-600 to-blue-700">
                             <tr>
-                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-16">S.No</th>
-                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Location</th>
-                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-24">Active</th>
-                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-40">Actions</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider w-16">S.No</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">Name</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">Location</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider w-24">Active</th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider w-40">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
