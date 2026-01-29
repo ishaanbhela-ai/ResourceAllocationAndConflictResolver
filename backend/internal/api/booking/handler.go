@@ -141,10 +141,6 @@ func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
 
 func (h *BookingHandler) CheckIn(c *gin.Context) {
 	userId, exists := c.Get("userUUID")
-	if !exists {
-		utils.Error(c, http.StatusBadRequest, "user identity missing")
-		return
-	}
 
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
