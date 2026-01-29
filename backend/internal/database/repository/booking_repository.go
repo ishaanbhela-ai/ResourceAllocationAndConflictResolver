@@ -222,3 +222,34 @@ func (r *BookingRepository) CancelExpiredPendingBookings(cutoffTime time.Time) e
 			"rejection_reason": "Not seen by admin",
 		}).Error
 }
+
+func (r *BookingRepository) GetTopBookedResources(limit int) ([]booking.DashboardResourceStat, error) {
+	var stats []booking.DashboardResourceStat
+	// Postgres specific SQL for conditional counting.
+	// Note: GORM might handle this, but raw SQL is often cleaner for complex aggregation.
+	err := r.db.Table("bookings").
+		Select("bookings.resource_id, resources.name as resource_name, " +
+			"SUM(CASE WHEN bookings.status = 'pending' THEN 1 ELSE 0 END) as pending, " +
+			"SUM(CASE WHEN bookings.status = 'approved' THEN 1 ELSE 0 END) as approved, " +
+			"SUM(CASE WHEN bookings.status = 'utilized' THEN 1 ELSE 0 END) as utilized, " +
+			"COUNT(*) as total").
+		Joins("JOIN resources ON bookings.resource_id = resources.id").
+		Group("bookings.resource_id, resources.name").
+		Order("total DESC").
+		Limit(limit).
+		Scan(&stats).Error
+	return stats, err
+}
+
+func (r *BookingRepository) GetTopReleasingUsers(limit int) ([]booking.DashboardUserStat, error) {
+	var stats []booking.DashboardUserStat
+	err := r.db.Table("bookings").
+		Select("bookings.user_id, users.name as user_name, COUNT(*) as released_count").
+		Joins("JOIN users ON bookings.user_id = users.uuid").
+		Where("bookings.status = ?", booking.StatusReleased).
+		Group("bookings.user_id, users.name").
+		Order("released_count DESC").
+		Limit(limit).
+		Scan(&stats).Error
+	return stats, err
+}

@@ -16,6 +16,8 @@ type IBookingService interface {
 	CancelBooking(id int, userID string) error
 	UpdateStatus(id int, req *BookingStatusUpdate, approverID string) error
 	CheckInBooking(bookingId int) error
+	GetDashboardResourceStats() ([]DashboardResourceStat, error)
+	GetDashboardUserStats() ([]DashboardUserStat, error)
 }
 
 type BookingHandler struct {
@@ -140,7 +142,6 @@ func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
 }
 
 func (h *BookingHandler) CheckIn(c *gin.Context) {
-
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -148,10 +149,37 @@ func (h *BookingHandler) CheckIn(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.CheckInBooking(id); err != nil {
+	err = h.service.CheckInBooking(id)
+	if err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "successfully checked in booking. enjoy!"})
+	c.JSON(http.StatusOK, gin.H{"status": "utilized", "message": "Booking checked in successfully"})
+}
+
+func (h *BookingHandler) GetDashboardResourceStats(c *gin.Context) {
+	stats, err := h.service.GetDashboardResourceStats()
+	if err != nil {
+		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
+		return
+	}
+	if stats == nil {
+		c.JSON(http.StatusNoContent, gin.H{"stats": nil})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"stats": stats})
+}
+
+func (h *BookingHandler) GetDashboardUserStats(c *gin.Context) {
+	stats, err := h.service.GetDashboardUserStats()
+	if err != nil {
+		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
+		return
+	}
+	if stats == nil {
+		c.JSON(http.StatusNoContent, gin.H{"stats": nil})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
