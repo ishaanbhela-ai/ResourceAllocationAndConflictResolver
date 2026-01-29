@@ -68,3 +68,18 @@ type BookingSummary struct {
 func (b *BookingCreate) Sanitize() {
 	b.Purpose = strings.TrimSpace(b.Purpose)
 }
+
+type DashboardResourceStat struct {
+	ResourceID   int    `json:"resource_id"`
+	ResourceName string `json:"resource_name"`
+	Pending      int64  `json:"pending"`
+	Approved     int64  `json:"approved"`
+	Utilized     int64  `json:"utilized"`
+	Total        int64  `json:"total"`
+}
+
+type DashboardUserStat struct {
+	UserID        string `json:"user_id"`
+	UserName      string `json:"user_name"`
+	ReleasedCount int64  `json:"released_count"`
+}

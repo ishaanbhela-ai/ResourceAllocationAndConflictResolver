@@ -98,6 +98,10 @@ func SetupRoutes(h *Handlers) *gin.Engine {
 		admin.PATCH("/bookings/:id/status", h.BookingHandler.UpdateBookingStatus)
 
 		admin.PATCH("/bookings/:id/checkin", h.BookingHandler.CheckIn)
+
+		// [NEW] Dashboard Stats (Admin)
+		admin.GET("/dashboard/resources", h.BookingHandler.GetDashboardResourceStats)
+		admin.GET("/dashboard/users", h.BookingHandler.GetDashboardUserStats)
 	}
 
 	return router

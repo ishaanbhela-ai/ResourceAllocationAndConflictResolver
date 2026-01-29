@@ -85,6 +85,22 @@ func (m *MockBookingRepo) CancelExpiredPendingBookings(cutoffTime time.Time) err
 	return m.Called(cutoffTime).Error(0)
 }
 
+func (m *MockBookingRepo) GetTopBookedResources(limit int) ([]booking.DashboardResourceStat, error) {
+	args := m.Called(limit)
+	if val := args.Get(0); val != nil {
+		return val.([]booking.DashboardResourceStat), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockBookingRepo) GetTopReleasingUsers(limit int) ([]booking.DashboardUserStat, error) {
+	args := m.Called(limit)
+	if val := args.Get(0); val != nil {
+		return val.([]booking.DashboardUserStat), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 // --- TEST SUITE ---
 
 func TestCreateBooking_Success(t *testing.T) {
