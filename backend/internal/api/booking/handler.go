@@ -15,7 +15,7 @@ type IBookingService interface {
 	GetAllBookings(filters map[string]interface{}, pagination utils.PaginationQuery) ([]BookingSummary, int64, error)
 	CancelBooking(id int, userID string) error
 	UpdateStatus(id int, req *BookingStatusUpdate, approverID string) error
-	CheckInBooking(bookingId int, userId string) error
+	CheckInBooking(bookingId int) error
 }
 
 type BookingHandler struct {
@@ -140,11 +140,6 @@ func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
 }
 
 func (h *BookingHandler) CheckIn(c *gin.Context) {
-	userId, exists := c.Get("userUUID")
-	if !exists {
-		utils.Error(c, http.StatusBadRequest, "user identity missing")
-		return
-	}
 
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -153,7 +148,7 @@ func (h *BookingHandler) CheckIn(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.CheckInBooking(id, userId.(string)); err != nil {
+	if err := h.service.CheckInBooking(id); err != nil {
 		utils.Error(c, utils.StatusCodeFromError(err), err.Error())
 		return
 	}

@@ -308,15 +308,11 @@ func (s *BookingService) mapToSummary(bookings []Booking) []BookingSummary {
 	return summaries
 }
 
-func (s *BookingService) CheckInBooking(bookingId int, userId string) error {
+func (s *BookingService) CheckInBooking(bookingId int) error {
 	booking, err := s.BookingRepo.GetBookingByID(bookingId)
 
 	if err != nil {
 		return err
-	}
-
-	if booking.UserID != userId {
-		return fmt.Errorf("%w: Unauthorized Action", utils.ErrUnauthorized)
 	}
 
 	if booking.Status != BookingStatus(StatusApproved) {
