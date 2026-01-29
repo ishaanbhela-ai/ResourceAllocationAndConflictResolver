@@ -16,6 +16,7 @@ const BookingModal = ({ resource, onClose }) => {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState('');
+    const [suggestedSlots, setSuggestedSlots] = useState([]);
     const [showToast, setShowToast] = useState(false);
 
     const handleChange = (e) => {
@@ -31,6 +32,7 @@ const BookingModal = ({ resource, onClose }) => {
             }));
         }
         setApiError('');
+        setSuggestedSlots([]);
     };
 
     const validate = () => {
@@ -61,6 +63,35 @@ const BookingModal = ({ resource, onClose }) => {
         return newErrors;
     };
 
+    // Parse suggested slots from error message
+    const parseSuggestedSlots = (errorMessage) => {
+        if (!errorMessage) return [];
+
+        // Extract text after "Suggested slots:"
+        const slotsMatch = errorMessage.match(/Suggested slots:([\s\S]*)/);
+        if (!slotsMatch) return [];
+
+        // Split by newlines and filter out empty lines
+        const slots = slotsMatch[1]
+            .split('\n')
+            .map(slot => slot.trim())
+            .filter(slot => slot.length > 0);
+
+        return slots;
+    };
+
+    // Extract the main error message (before "Suggested slots:")
+    const extractMainError = (errorMessage) => {
+        if (!errorMessage) return 'Failed to create booking';
+
+        const mainErrorMatch = errorMessage.match(/^(.*?)(?:Suggested slots:|$)/s);
+        if (mainErrorMatch) {
+            return mainErrorMatch[1].trim().replace(/\.$/, ''); // Remove trailing period
+        }
+
+        return errorMessage;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -72,6 +103,7 @@ const BookingModal = ({ resource, onClose }) => {
 
         setLoading(true);
         setApiError('');
+        setSuggestedSlots([]);
 
         try {
             await axios.post('/api/bookings', {
@@ -90,12 +122,69 @@ const BookingModal = ({ resource, onClose }) => {
                 navigate('/bookings');
             }, 1500);
         } catch (err) {
-            if (err.response) {
-                setApiError(err.response.data.message || 'Failed to create booking');
+            console.error('Booking error:', err.response);
+
+            if (err.response?.data?.error) {
+                // Extract the specific error message from API
+                const fullError = err.response.data.error;
+                const mainError = extractMainError(fullError);
+                const slots = parseSuggestedSlots(fullError);
+
+                setApiError(mainError);
+                setSuggestedSlots(slots);
+            } else if (err.response?.data?.message) {
+                // Fallback to message field
+                const fullError = err.response.data.message;
+                const mainError = extractMainError(fullError);
+                const slots = parseSuggestedSlots(fullError);
+
+                setApiError(mainError);
+                setSuggestedSlots(slots);
             } else {
                 setApiError('Failed to create booking. Please try again.');
             }
+
             setLoading(false);
+        }
+    };
+
+    // Helper to select a suggested slot
+    const selectSuggestedSlot = (slotText) => {
+        // Parse slot text like "Wed, 28 Jan 15:00"
+        try {
+            // Extract date and time
+            const timeMatch = slotText.match(/(\d{1,2}:\d{2})/);
+            const dateMatch = slotText.match(/(\d{1,2})\s+(\w+)/);
+
+            if (timeMatch && dateMatch) {
+                const time = timeMatch[1];
+                const day = dateMatch[1];
+                const month = dateMatch[2];
+
+                // Convert month name to number
+                const monthMap = {
+                    'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+                    'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+                    'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+                };
+
+                const currentYear = new Date().getFullYear();
+                const monthNum = monthMap[month] || '01';
+                const dayNum = day.padStart(2, '0');
+
+                // Set the date and start time
+                setFormData(prev => ({
+                    ...prev,
+                    date: `${currentYear}-${monthNum}-${dayNum}`,
+                    start_time: time,
+                }));
+
+                // Clear errors
+                setApiError('');
+                setSuggestedSlots([]);
+            }
+        } catch (error) {
+            console.error('Error parsing suggested slot:', error);
         }
     };
 
@@ -133,16 +222,53 @@ const BookingModal = ({ resource, onClose }) => {
                     {/* Form */}
                     <div className="p-6">
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* API Error Display */}
                             {apiError && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                                    {apiError}
+                                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                                    <div className="flex items-start">
+                                        <svg className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
+                                        <div className="flex-1">
+                                            <h3 className="text-sm font-medium text-red-800">
+                                                Booking Failed
+                                            </h3>
+                                            <p className="mt-1 text-sm text-red-700">
+                                                {apiError}
+                                            </p>
+
+                                            {/* Suggested Slots */}
+                                            {suggestedSlots.length > 0 && (
+                                                <div className="mt-4">
+                                                    <p className="text-sm font-medium text-red-800 mb-2">
+                                                        Available time slots:
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {suggestedSlots.map((slot, index) => (
+                                                            <button
+                                                                key={index}
+                                                                type="button"
+                                                                onClick={() => selectSuggestedSlot(slot)}
+                                                                className="px-3 py-2 bg-white border border-red-300 text-red-700 rounded-md text-sm font-medium hover:bg-red-50 transition-colors"
+                                                            >
+                                                                {slot}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <p className="mt-2 text-xs text-red-600">
+                                                        Click a slot to auto-fill the date and time
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Date */}
                             <div>
                                 <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Date
+                                    Date <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="date"
@@ -163,7 +289,7 @@ const BookingModal = ({ resource, onClose }) => {
                                 {/* Start Time */}
                                 <div>
                                     <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Start Time
+                                        Start Time <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="time"
@@ -182,7 +308,7 @@ const BookingModal = ({ resource, onClose }) => {
                                 {/* End Time */}
                                 <div>
                                     <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
-                                        End Time
+                                        End Time <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="time"
@@ -202,7 +328,7 @@ const BookingModal = ({ resource, onClose }) => {
                             {/* Purpose */}
                             <div>
                                 <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Purpose
+                                    Purpose <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
                                     id="purpose"
@@ -229,7 +355,17 @@ const BookingModal = ({ resource, onClose }) => {
                                         : 'bg-blue-600 hover:bg-blue-700'
                                         }`}
                                 >
-                                    {loading ? 'Creating Booking...' : 'Create Booking'}
+                                    {loading ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                            Creating Booking...
+                                        </span>
+                                    ) : (
+                                        'Create Booking'
+                                    )}
                                 </button>
                                 <button
                                     type="button"

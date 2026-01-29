@@ -16,13 +16,6 @@ const CreateResourceForm = ({ onClose, onSuccess }) => {
     const [apiError, setApiError] = useState('');
     const [selectedType, setSelectedType] = useState(null);
 
-    // Resource name suggestions based on type
-    const resourceNameSuggestions = {
-        'meeting room': ['Topaz', 'Emerald', 'Sapphire', 'Citrine'],
-        'laptop': ['Windows', 'Mac OS', 'Linux', 'Ubuntu'],
-        'turf': ['Turf A', 'Turf B', 'Turf C', 'Turf D'],
-    };
-
     useEffect(() => {
         fetchResourceTypes();
     }, []);
@@ -141,21 +134,6 @@ const CreateResourceForm = ({ onClose, onSuccess }) => {
             ...prev,
             properties: { ...prev.properties, [key]: value },
         }));
-    };
-
-    const getNameSuggestions = () => {
-        if (!selectedType) return [];
-
-        const typeName = (selectedType.type || selectedType.name || '').toLowerCase();
-
-        // Find matching suggestions
-        for (const [key, suggestions] of Object.entries(resourceNameSuggestions)) {
-            if (typeName.includes(key)) {
-                return suggestions;
-            }
-        }
-
-        return [];
     };
 
     const validate = () => {
@@ -333,8 +311,6 @@ const CreateResourceForm = ({ onClose, onSuccess }) => {
             .trim();
     };
 
-    const nameSuggestions = getNameSuggestions();
-
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -392,39 +368,21 @@ const CreateResourceForm = ({ onClose, onSuccess }) => {
                                 )}
                             </div>
 
-                            {/* Resource Name - Dropdown if suggestions available, text input otherwise */}
+                            {/* Resource Name - Always text input */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Resource Name <span className="text-red-500">*</span>
                                 </label>
-                                {nameSuggestions.length > 0 ? (
-                                    <select
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.name ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                        disabled={loading}
-                                    >
-                                        <option value="">Select Resource Name</option>
-                                        {nameSuggestions.map((suggestion, index) => (
-                                            <option key={index} value={suggestion}>
-                                                {suggestion}
-                                            </option>
-                                        ))}
-                                    </select>
-                                ) : (
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.name ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                        placeholder="Enter resource name"
-                                        disabled={loading}
-                                    />
-                                )}
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.name ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                    placeholder="Enter resource name"
+                                    disabled={loading}
+                                />
                                 {errors.name && (
                                     <p className="mt-1 text-sm text-red-600">{errors.name}</p>
                                 )}
