@@ -9,7 +9,7 @@ import (
 type ResourceRepository interface {
 	GetResourceByID(id int) (*Resource, error)
 	GetAllResources(typeID *int, location string, props map[string]string, startTime, endTime *string, pagination utils.PaginationQuery) ([]ResourceSummary, int64, error)
-	GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceTypeSummary, int64, error)
+	GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceType, int64, error)
 	GetResourceTypeByID(id int) (*ResourceType, error)
 
 	CreateResource(res *Resource) error
@@ -121,7 +121,7 @@ func (s *ResourceService) CreateResourceType(resType *ResourceType) error {
 	return s.Repo.CreateResourceType(resType)
 }
 
-func (s *ResourceService) GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceTypeSummary, int64, error) {
+func (s *ResourceService) GetAllResourceTypes(pagination utils.PaginationQuery) ([]ResourceType, int64, error) {
 	return s.Repo.GetAllResourceTypes(pagination)
 }
 

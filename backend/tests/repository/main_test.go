@@ -72,9 +72,7 @@ func createTestUser(db *gorm.DB, email string, role user.Role) *user.CreateUser 
 
 func createTestResource(db *gorm.DB, name string) *resource.Resource {
 	rt := &resource.ResourceType{
-		ResourceTypeSummary: resource.ResourceTypeSummary{
-			Type: "Conference Room " + uuid.NewString()[:8],
-		},
+		Type:             "Conference Room " + uuid.NewString()[:8],
 		SchemaDefinition: map[string]string{"capacity": "integer"},
 	}
 	if err := db.Create(rt).Error; err != nil {
