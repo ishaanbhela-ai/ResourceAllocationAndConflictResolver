@@ -17,9 +17,7 @@ func TestCreateResource_Success(t *testing.T) {
 	repo := repository.NewResourceRepository(db)
 
 	rt := &resource.ResourceType{
-		ResourceTypeSummary: resource.ResourceTypeSummary{
-			Type: "MeetingRoom-" + uuid.NewString()[:8],
-		},
+		Type: "MeetingRoom-" + uuid.NewString()[:8],
 	}
 	db.Create(rt)
 

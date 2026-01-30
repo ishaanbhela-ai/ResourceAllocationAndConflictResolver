@@ -113,11 +113,11 @@ func (r *ResourceRepository) CreateResourceType(resType *resource.ResourceType) 
 	return nil
 }
 
-func (r *ResourceRepository) GetAllResourceTypes(pagination utils.PaginationQuery) ([]resource.ResourceTypeSummary, int64, error) {
-	var types []resource.ResourceTypeSummary
+func (r *ResourceRepository) GetAllResourceTypes(pagination utils.PaginationQuery) ([]resource.ResourceType, int64, error) {
+	var types []resource.ResourceType
 	var total int64
 
-	query := r.db.Table("resource_types").Model(&resource.ResourceTypeSummary{})
+	query := r.db.Table("resource_types").Model(&resource.ResourceType{})
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}

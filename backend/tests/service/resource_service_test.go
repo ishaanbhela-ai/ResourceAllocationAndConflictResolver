@@ -49,9 +49,9 @@ func (m *MockResourceRepo) GetAllResources(typeID *int, location string, props m
 	args := m.Called(typeID, location, props, startTime, endTime, pagination)
 	return args.Get(0).([]resource.ResourceSummary), args.Get(1).(int64), args.Error(2)
 }
-func (m *MockResourceRepo) GetAllResourceTypes(pagination utils.PaginationQuery) ([]resource.ResourceTypeSummary, int64, error) {
+func (m *MockResourceRepo) GetAllResourceTypes(pagination utils.PaginationQuery) ([]resource.ResourceType, int64, error) {
 	args := m.Called(pagination)
-	return args.Get(0).([]resource.ResourceTypeSummary), args.Get(1).(int64), args.Error(2)
+	return args.Get(0).([]resource.ResourceType), args.Get(1).(int64), args.Error(2)
 }
 func (m *MockResourceRepo) CreateResourceType(resType *resource.ResourceType) error {
 	return m.Called(resType).Error(0)
@@ -74,8 +74,9 @@ func TestCreateResource_ValidationSuccess(t *testing.T) {
 
 	// Local mock setup
 	resType := &resource.ResourceType{
-		ResourceTypeSummary: resource.ResourceTypeSummary{ID: 1, Type: "Room"},
-		SchemaDefinition:    map[string]string{"capacity": "int"},
+		ID:               1,
+		Type:             "Room",
+		SchemaDefinition: map[string]string{"capacity": "int"},
 	}
 	mockRepo.On("GetResourceTypeByID", 1).Return(resType, nil)
 
@@ -97,8 +98,8 @@ func TestCreateResource_ValidationFail_MissingProp(t *testing.T) {
 	svc := resource.NewResourceService(mockRepo)
 
 	resType := &resource.ResourceType{
-		ResourceTypeSummary: resource.ResourceTypeSummary{ID: 1},
-		SchemaDefinition:    map[string]string{"capacity": "int"}, // Required
+		ID:               1,
+		SchemaDefinition: map[string]string{"capacity": "int"}, // Required
 	}
 	mockRepo.On("GetResourceTypeByID", 1).Return(resType, nil)
 

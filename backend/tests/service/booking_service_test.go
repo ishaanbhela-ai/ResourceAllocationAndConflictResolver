@@ -114,8 +114,11 @@ func TestCreateBooking_Success(t *testing.T) {
 		loc = time.UTC // Fallback for environments without zoneinfo
 	}
 	now := time.Now().In(loc)
-	// Example: Start at next 10:00 AM
+	// Example: Start at next 10:00 AM, ensuring it's a weekday
 	startTime := time.Date(now.Year(), now.Month(), now.Day()+1, 10, 0, 0, 0, loc)
+	for startTime.Weekday() == time.Saturday || startTime.Weekday() == time.Sunday {
+		startTime = startTime.AddDate(0, 0, 1)
+	}
 	endTime := startTime.Add(1 * time.Hour)
 
 	req := &booking.BookingCreate{
