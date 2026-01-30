@@ -62,6 +62,7 @@ type BookingSummary struct {
 	UserName     string        `json:"user_name"`
 	StartTime    time.Time     `json:"start_time"`
 	EndTime      time.Time     `json:"end_time"`
+	Purpose      string        `json:"purpose"`
 	Status       BookingStatus `json:"status"`
 }
 
