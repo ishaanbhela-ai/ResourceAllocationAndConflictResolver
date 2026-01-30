@@ -304,6 +304,7 @@ func (s *BookingService) mapToSummary(bookings []Booking) []BookingSummary {
 			UserName:     b.User.Name,
 			StartTime:    b.StartTime,
 			EndTime:      b.EndTime,
+			Purpose:      b.Purpose,
 			Status:       b.Status,
 		}
 	}
