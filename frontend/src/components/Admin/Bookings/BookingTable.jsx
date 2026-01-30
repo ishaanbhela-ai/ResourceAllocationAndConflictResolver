@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import axios from '../../../api/axios';
 
@@ -12,12 +11,10 @@ const BookingTable = ({ onApprove, onReject }) => {
 
     useEffect(() => {
         fetchBookings();
-
         const timer = setInterval(() => {
             setCurrentTime(new Date());
             checkForAutoRejections();
         }, 60000);
-
         return () => clearInterval(timer);
     }, [pagination.page]);
 
@@ -58,7 +55,6 @@ const BookingTable = ({ onApprove, onReject }) => {
         setBookings(prevBookings =>
             prevBookings.map(booking => {
                 if (booking.status === 'approved' && hasCheckInWindowPassed(booking.start_time || booking.startTime)) {
-
                     return { ...booking, status: 'not-checked-in' };
                 }
                 return booking;
@@ -101,9 +97,7 @@ const BookingTable = ({ onApprove, onReject }) => {
 
     const handleCheckIn = async (booking) => {
         try {
-            // Use the correct booking ID field
             const bookingId = booking.id || booking._id;
-
             const response = await axios.patch(
                 `/api/admin/bookings/${bookingId}/checkin`,
                 {},
@@ -139,12 +133,12 @@ const BookingTable = ({ onApprove, onReject }) => {
 
     const getStatusBadge = (status) => {
         const statusStyles = {
-            pending: 'bg-yellow-400 text-white',
-            approved: 'bg-green-500 text-white',
-            rejected: 'bg-red-500 text-white',
-            cancelled: 'bg-gray-400 text-white',
-            'checked-in': 'bg-blue-500 text-white',
-            'not-checked-in': 'bg-orange-500 text-white',
+            pending: 'bg-yellow-100 text-yellow-800',
+            approved: 'bg-green-100 text-green-800',
+            rejected: 'bg-red-100 text-red-800',
+            cancelled: 'bg-gray-100 text-gray-800',
+            'checked-in': 'bg-blue-100 text-blue-800',
+            'not-checked-in': 'bg-orange-100 text-orange-800',
         };
 
         const statusLabels = {
@@ -159,7 +153,7 @@ const BookingTable = ({ onApprove, onReject }) => {
         const label = statusLabels[status] || (status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown');
 
         return (
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusStyles[status] || 'bg-gray-500 text-white'}`}>
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusStyles[status] || 'bg-gray-100 text-gray-800'}`}>
                 {label}
             </span>
         );
@@ -167,7 +161,6 @@ const BookingTable = ({ onApprove, onReject }) => {
 
     const filteredBookings = bookings.filter((booking) => {
         if (!searchTerm) return true;
-
         const searchLower = searchTerm.toLowerCase();
         const resourceName = (booking.resource_name || booking.resource?.name || '').toLowerCase();
         const userName = (booking.user_name || booking.user?.name || '').toLowerCase();
@@ -315,14 +308,13 @@ const BookingTable = ({ onApprove, onReject }) => {
                                 {filteredBookings.map((booking, index) => {
                                     const inCheckInWindow = isInCheckInWindow(booking.start_time || booking.startTime);
                                     const checkInPassed = hasCheckInWindowPassed(booking.start_time || booking.startTime);
-
                                     let displayStatus = booking.status;
                                     if (booking.status === 'approved' && checkInPassed) {
                                         displayStatus = 'not-checked-in';
                                     }
 
                                     return (
-                                        <tr key={booking.id || booking._id} className="hover:bg-gray-50 transition">
+                                        <tr key={booking.id || booking._id} className="hover:bg-blue-50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {(pagination.page - 1) * pagination.limit + index + 1}
                                             </td>
@@ -361,7 +353,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                         </button>
                                                     </div>
                                                 )}
-
                                                 {booking.status === 'approved' && inCheckInWindow && (
                                                     <button
                                                         onClick={() => handleCheckIn(booking)}
@@ -371,20 +362,17 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                         <span className="block text-xs mt-1 opacity-90">(15 min window)</span>
                                                     </button>
                                                 )}
-
                                                 {booking.status === 'approved' && checkInPassed && (
                                                     <div className="text-orange-600 font-medium">
                                                         Not Checked In
                                                         <div className="text-xs text-gray-500 mt-1">Window closed</div>
                                                     </div>
                                                 )}
-
                                                 {booking.status === 'approved' && !inCheckInWindow && !checkInPassed && (
                                                     <div className="text-gray-600 text-sm">
                                                         Waiting for check-in time
                                                     </div>
                                                 )}
-
                                                 {booking.status === 'checked-in' && (
                                                     <div className="text-blue-600 font-medium flex items-center gap-2">
                                                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -393,7 +381,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                         Checked In
                                                     </div>
                                                 )}
-
                                                 {!['pending', 'approved', 'checked-in'].includes(booking.status) && (
                                                     <div className="text-gray-500 text-sm">
                                                         No actions

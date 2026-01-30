@@ -119,7 +119,7 @@ const UserTable = ({ onEdit, refreshTrigger }) => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {users.map((user, index) => (
-                                    <tr key={user.id || user.uuid} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={user.id || user.uuid} className="hover:bg-blue-50 transition-colors">
                                         <td className="px-8 py-5 whitespace-nowrap">
                                             <div className="text-base font-medium text-gray-600">
                                                 {(pagination.page - 1) * pagination.limit + index + 1}
