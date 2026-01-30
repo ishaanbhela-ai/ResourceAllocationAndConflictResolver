@@ -16,7 +16,6 @@ const UserTable = ({ onEdit, refreshTrigger }) => {
             setLoading(true);
             setError('');
 
-            // FIXED: Changed from /api/admin/user to /api/admin/users
             const response = await axios.get(
                 `/api/admin/user?page=${pagination.page}&limit=${pagination.limit}`
             );
@@ -98,7 +97,6 @@ const UserTable = ({ onEdit, refreshTrigger }) => {
 
     return (
         <div className="space-y-6">
-            {/* Centered container with max width */}
             <div className="max-w-4xl mx-auto">
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <div className="overflow-x-auto">
@@ -144,7 +142,6 @@ const UserTable = ({ onEdit, refreshTrigger }) => {
                 </div>
             </div>
 
-            {/* Pagination */}
             <div className="flex justify-center items-center gap-4">
                 <button
                     onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}

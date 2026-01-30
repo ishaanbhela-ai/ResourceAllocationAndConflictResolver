@@ -1,5 +1,4 @@
-// FILE: src/components/User/Resources/ResourceCard.jsx (FIXED)
-// ============================================================
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,7 +6,7 @@ const ResourceCard = ({ resource }) => {
     const navigate = useNavigate();
 
     const handleClick = () => {
-        navigate(`/resources/${resource.id}`); // FIXED: Added opening parenthesis
+        navigate(`/resources/${resource.id}`);
     };
 
     return (
@@ -19,8 +18,8 @@ const ResourceCard = ({ resource }) => {
                 <h3 className="text-lg font-semibold text-gray-900">{resource.name}</h3>
                 <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${resource.is_active
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                         }`}
                 >
                     {resource.is_active ? 'Active' : 'Inactive'}
@@ -37,7 +36,6 @@ const ResourceCard = ({ resource }) => {
                 </div>
             </div>
 
-            {/* Properties */}
             {resource.properties && Object.keys(resource.properties).length > 0 && (
                 <div className="mb-3">
                     <div className="flex flex-wrap gap-2">
@@ -60,7 +58,7 @@ const ResourceCard = ({ resource }) => {
 
             <div className="pt-3 border-t border-gray-200">
                 <span className="text-blue-600 text-sm font-medium hover:text-blue-700">
-                    View Details →
+                    View Details
                 </span>
             </div>
         </div>

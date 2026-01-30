@@ -1,5 +1,4 @@
-// FILE: src/components/Admin/Bookings/BookingTable.jsx
-// ============================================================
+
 import React, { useState, useEffect } from 'react';
 import axios from '../../../api/axios';
 
@@ -14,12 +13,10 @@ const BookingTable = ({ onApprove, onReject }) => {
     useEffect(() => {
         fetchBookings();
 
-        // Update current time every minute to check check-in window
         const timer = setInterval(() => {
             setCurrentTime(new Date());
-            // Also check for auto-rejections
             checkForAutoRejections();
-        }, 60000); // Update every minute
+        }, 60000);
 
         return () => clearInterval(timer);
     }, [pagination.page]);
@@ -57,12 +54,11 @@ const BookingTable = ({ onApprove, onReject }) => {
         }
     };
 
-    // Check for bookings that should be auto-rejected
     const checkForAutoRejections = () => {
         setBookings(prevBookings =>
             prevBookings.map(booking => {
                 if (booking.status === 'approved' && hasCheckInWindowPassed(booking.start_time || booking.startTime)) {
-                    // Update status locally
+
                     return { ...booking, status: 'not-checked-in' };
                 }
                 return booking;
@@ -89,19 +85,17 @@ const BookingTable = ({ onApprove, onReject }) => {
         });
     };
 
-    // Check if booking is in check-in window (15 minutes from start time)
     const isInCheckInWindow = (startTime) => {
         if (!startTime) return false;
         const start = new Date(startTime);
-        const checkInEnd = new Date(start.getTime() + 15 * 60000); // 15 minutes after start
+        const checkInEnd = new Date(start.getTime() + 15 * 60000);
         return currentTime >= start && currentTime <= checkInEnd;
     };
 
-    // Check if check-in window has passed
     const hasCheckInWindowPassed = (startTime) => {
         if (!startTime) return false;
         const start = new Date(startTime);
-        const checkInEnd = new Date(start.getTime() + 15 * 60000); // 15 minutes after start
+        const checkInEnd = new Date(start.getTime() + 15 * 60000);
         return currentTime > checkInEnd;
     };
 
@@ -112,18 +106,16 @@ const BookingTable = ({ onApprove, onReject }) => {
 
             const response = await axios.patch(
                 `/api/admin/bookings/${bookingId}/checkin`,
-                {}, // Empty body
+                {},
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        // Include auth token if needed
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 }
             );
 
             if (response.data.success || response.status === 200) {
-                // Update the booking status locally
                 setBookings(prevBookings =>
                     prevBookings.map(b =>
                         (b.id || b._id) === bookingId
@@ -173,7 +165,6 @@ const BookingTable = ({ onApprove, onReject }) => {
         );
     };
 
-    // Filter bookings based on search term
     const filteredBookings = bookings.filter((booking) => {
         if (!searchTerm) return true;
 
@@ -191,7 +182,6 @@ const BookingTable = ({ onApprove, onReject }) => {
 
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
-        // Reset to page 1 when searching
         setPagination((prev) => ({ ...prev, page: 1 }));
     };
 
@@ -227,7 +217,6 @@ const BookingTable = ({ onApprove, onReject }) => {
 
     return (
         <div className="space-y-6">
-            {/* Search Bar - Compact version on left */}
             <div className="flex items-center">
                 <div className="relative w-64">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -280,7 +269,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                 )}
             </div>
 
-            {/* No Results Message */}
             {filteredBookings.length === 0 && searchTerm ? (
                 <div className="bg-white rounded-lg shadow-md p-12 text-center">
                     <svg
@@ -309,7 +297,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                 </div>
             ) : (
                 <>
-                    {/* Table */}
                     <div className="overflow-x-auto shadow-md rounded-lg">
                         <table className="min-w-full bg-white border border-gray-200">
                             <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-blue-700">
@@ -329,7 +316,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                                     const inCheckInWindow = isInCheckInWindow(booking.start_time || booking.startTime);
                                     const checkInPassed = hasCheckInWindowPassed(booking.start_time || booking.startTime);
 
-                                    // Determine the actual status to display
                                     let displayStatus = booking.status;
                                     if (booking.status === 'approved' && checkInPassed) {
                                         displayStatus = 'not-checked-in';
@@ -359,7 +345,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                 {getStatusBadge(displayStatus)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                {/* Pending bookings - Show Approve/Reject */}
                                                 {booking.status === 'pending' && (
                                                     <div className="flex gap-2">
                                                         <button
@@ -377,7 +362,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                     </div>
                                                 )}
 
-                                                {/* Approved bookings - Show Check-in button if in window */}
                                                 {booking.status === 'approved' && inCheckInWindow && (
                                                     <button
                                                         onClick={() => handleCheckIn(booking)}
@@ -388,7 +372,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                     </button>
                                                 )}
 
-                                                {/* Approved but check-in window passed */}
                                                 {booking.status === 'approved' && checkInPassed && (
                                                     <div className="text-orange-600 font-medium">
                                                         Not Checked In
@@ -396,14 +379,12 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                     </div>
                                                 )}
 
-                                                {/* Approved but not yet in check-in window */}
                                                 {booking.status === 'approved' && !inCheckInWindow && !checkInPassed && (
                                                     <div className="text-gray-600 text-sm">
                                                         Waiting for check-in time
                                                     </div>
                                                 )}
 
-                                                {/* Checked-in status */}
                                                 {booking.status === 'checked-in' && (
                                                     <div className="text-blue-600 font-medium flex items-center gap-2">
                                                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -413,7 +394,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                     </div>
                                                 )}
 
-                                                {/* Other statuses */}
                                                 {!['pending', 'approved', 'checked-in'].includes(booking.status) && (
                                                     <div className="text-gray-500 text-sm">
                                                         No actions
@@ -427,7 +407,6 @@ const BookingTable = ({ onApprove, onReject }) => {
                         </table>
                     </div>
 
-                    {/* Pagination - Only show if not searching */}
                     {!searchTerm && (
                         <div className="flex justify-center items-center gap-4">
                             <button

@@ -48,7 +48,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
             newErrors.type = 'Type name is required';
         }
 
-        // Validate properties
         const propertyKeys = new Set();
         properties.forEach((prop, index) => {
             if (!prop.key.trim()) {
@@ -76,7 +75,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
         setApiError('');
 
         try {
-            // Build schema definition from properties
             const schema_definition = {};
             properties.forEach(prop => {
                 if (prop.key.trim()) {
@@ -131,7 +129,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
             onClick={handleBackgroundClick}
         >
             <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-                {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold text-white">Create Resource Type</h2>
@@ -147,7 +144,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
                     </button>
                 </div>
 
-                {/* Form */}
                 <div className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {apiError && (
@@ -159,7 +155,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
                             </div>
                         )}
 
-                        {/* Type Name */}
                         <div>
                             <label htmlFor="type" className="block text-sm font-semibold text-gray-700 mb-2">
                                 Resource Type Name *
@@ -184,7 +179,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Properties Section */}
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
@@ -203,7 +197,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
                                 </button>
                             </div>
 
-                            {/* Property List */}
                             {properties.length > 0 && (
                                 <div className="space-y-3 mb-4">
                                     {properties.map((prop, index) => (
@@ -257,7 +250,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
                                 </div>
                             )}
 
-                            {/* Add Property Button */}
                             <button
                                 type="button"
                                 onClick={addProperty}
@@ -276,7 +268,6 @@ const CreateTypeForm = ({ onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex gap-3 pt-4">
                             <button
                                 type="submit"

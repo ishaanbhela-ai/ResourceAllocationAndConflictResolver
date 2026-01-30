@@ -20,14 +20,12 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
             console.log('API Response:', response.data);
             console.log('Response type:', typeof response.data);
 
-            // Handle both array and object responses
             let typesData = Array.isArray(response.data) ? response.data :
                 (response.data.data && Array.isArray(response.data.data)) ? response.data.data :
                     (response.data.resource_types && Array.isArray(response.data.resource_types)) ? response.data.resource_types : [];
 
             console.log('Parsed types data:', typesData);
 
-            // Debug: Log the first item to see its structure
             if (typesData.length > 0) {
                 console.log('First type object:', typesData[0]);
                 console.log('Available keys:', Object.keys(typesData[0]));
@@ -66,7 +64,6 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
     };
 
     const formatPropertyValue = (value) => {
-        // Format data types for display
         const typeMap = {
             'string': 'Text',
             'number': 'Number',
@@ -79,7 +76,6 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
     };
 
     const getSchemaFromType = (type) => {
-        // Try different possible property names
         return type.schema_definition ||
             type.schemaDefinition ||
             type.schema ||
@@ -99,7 +95,6 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
             return <span className="text-gray-400 text-sm">No properties defined</span>;
         }
 
-        // If schema is a string, try to parse it
         let schemaObj = schema;
         if (typeof schema === 'string') {
             try {
@@ -230,13 +225,11 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
                         key={type.id}
                         className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all border border-gray-100 overflow-hidden"
                     >
-                        {/* Square Card Content */}
                         <div
                             className="aspect-square cursor-pointer hover:bg-gray-50 transition-colors flex flex-col"
                             onClick={() => toggleExpand(type.id)}
                         >
                             <div className="p-4 flex-1 flex flex-col">
-                                {/* Icon and Title */}
                                 <div className="flex flex-col items-center text-center mb-3">
                                     <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-3">
                                         <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,7 +242,6 @@ const TypeTable = ({ onCreateClick, onEdit, refreshTrigger }) => {
                                     </p>
                                 </div>
 
-                                {/* Action Buttons */}
                                 <div className="mt-auto flex flex-col gap-2">
                                     <button
                                         onClick={(e) => {

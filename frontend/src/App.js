@@ -1,49 +1,36 @@
-// ============================================================
-// FILE: src/App.js (UPDATED - Using AdminDashboardPage component)
-// ============================================================
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// Auth Pages
 import LoginPage from './pages/Auth/LoginPage';
 
-// User Pages
 import ProfilePage from './pages/User/ProfilePage';
 import ChangePasswordPage from './pages/User/ChangePasswordPage';
 import ResourcesPage from './pages/User/ResourcesPage';
 import ResourceDetailPage from './pages/User/ResourceDetailPage';
 import MyBookingsPage from './pages/User/MyBookingsPage';
 
-// Admin Pages
 import UsersPage from './pages/Admin/UsersPage';
 import ResourceTypesPage from './pages/Admin/ResourceTypesPage';
 import AdminResourcesPage from './pages/Admin/ResourcesPage';
 import AdminBookingsPage from './pages/Admin/BookingsPage';
 import AdminDashboardPage from './pages/Admin/AdminDashboardPage';
 
-// Layouts
 import UserLayout from './layouts/UserLayout';
 import AdminLayout from './layouts/AdminLayout';
 
-// Route Guards
 import ProtectedRoute from './utils/ProtectedRoute';
 import RoleRoute from './utils/RoleRoute';
 
-// ============================================================
-// Main App Component
-// ============================================================
+
 function App() {
     return (
         <Router>
             <Routes>
-                {/* ============================================ */}
-                {/* PUBLIC ROUTES */}
-                {/* ============================================ */}
+
                 <Route path="/login" element={<LoginPage />} />
 
-                {/* ============================================ */}
-                {/* EMPLOYEE/USER ROUTES */}
-                {/* ============================================ */}
+
                 <Route
                     element={
                         <ProtectedRoute>
@@ -60,9 +47,7 @@ function App() {
                     <Route path="/profile/change-password" element={<ChangePasswordPage />} />
                 </Route>
 
-                {/* ============================================ */}
-                {/* ADMIN ROUTES  */}
-                {/* ============================================ */}
+
                 <Route
                     element={
                         <ProtectedRoute>
@@ -72,7 +57,7 @@ function App() {
                         </ProtectedRoute>
                     }
                 >
-                    {/* Admin Dashboard - Now using AdminDashboardPage component */}
+
                     <Route path="/admin" element={<AdminDashboardPage />} />
 
                     {/* Admin Management Pages */}

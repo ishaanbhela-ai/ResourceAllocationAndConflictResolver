@@ -1,7 +1,4 @@
 
-// ============================================================
-// FILE: src/pages/Admin/ResourcesPage.jsx
-// ============================================================
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ResourceTable from '../../components/Admin/Resources/ResourceTable';

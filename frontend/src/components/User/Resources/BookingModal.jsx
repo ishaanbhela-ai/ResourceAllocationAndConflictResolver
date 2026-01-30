@@ -1,6 +1,4 @@
-// ============================================================
-// FILE: src/components/User/Resources/BookingModal.jsx (UPDATED)
-// ============================================================
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../api/axios';
@@ -63,15 +61,12 @@ const BookingModal = ({ resource, onClose }) => {
         return newErrors;
     };
 
-    // Parse suggested slots from error message
     const parseSuggestedSlots = (errorMessage) => {
         if (!errorMessage) return [];
 
-        // Extract text after "Suggested slots:"
         const slotsMatch = errorMessage.match(/Suggested slots:([\s\S]*)/);
         if (!slotsMatch) return [];
 
-        // Split by newlines and filter out empty lines
         const slots = slotsMatch[1]
             .split('\n')
             .map(slot => slot.trim())
@@ -80,13 +75,12 @@ const BookingModal = ({ resource, onClose }) => {
         return slots;
     };
 
-    // Extract the main error message (before "Suggested slots:")
     const extractMainError = (errorMessage) => {
         if (!errorMessage) return 'Failed to create booking';
 
         const mainErrorMatch = errorMessage.match(/^(.*?)(?:Suggested slots:|$)/s);
         if (mainErrorMatch) {
-            return mainErrorMatch[1].trim().replace(/\.$/, ''); // Remove trailing period
+            return mainErrorMatch[1].trim().replace(/\.$/, '');
         }
 
         return errorMessage;
@@ -113,10 +107,8 @@ const BookingModal = ({ resource, onClose }) => {
                 purpose: formData.purpose,
             });
 
-            // Show success toast
             setShowToast(true);
 
-            // Close modal and redirect after short delay
             setTimeout(() => {
                 onClose();
                 navigate('/bookings');
@@ -125,7 +117,6 @@ const BookingModal = ({ resource, onClose }) => {
             console.error('Booking error:', err.response);
 
             if (err.response?.data?.error) {
-                // Extract the specific error message from API
                 const fullError = err.response.data.error;
                 const mainError = extractMainError(fullError);
                 const slots = parseSuggestedSlots(fullError);
@@ -133,7 +124,6 @@ const BookingModal = ({ resource, onClose }) => {
                 setApiError(mainError);
                 setSuggestedSlots(slots);
             } else if (err.response?.data?.message) {
-                // Fallback to message field
                 const fullError = err.response.data.message;
                 const mainError = extractMainError(fullError);
                 const slots = parseSuggestedSlots(fullError);
@@ -148,11 +138,8 @@ const BookingModal = ({ resource, onClose }) => {
         }
     };
 
-    // Helper to select a suggested slot
     const selectSuggestedSlot = (slotText) => {
-        // Parse slot text like "Wed, 28 Jan 15:00"
         try {
-            // Extract date and time
             const timeMatch = slotText.match(/(\d{1,2}:\d{2})/);
             const dateMatch = slotText.match(/(\d{1,2})\s+(\w+)/);
 
@@ -161,7 +148,6 @@ const BookingModal = ({ resource, onClose }) => {
                 const day = dateMatch[1];
                 const month = dateMatch[2];
 
-                // Convert month name to number
                 const monthMap = {
                     'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
                     'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
@@ -172,14 +158,12 @@ const BookingModal = ({ resource, onClose }) => {
                 const monthNum = monthMap[month] || '01';
                 const dayNum = day.padStart(2, '0');
 
-                // Set the date and start time
                 setFormData(prev => ({
                     ...prev,
                     date: `${currentYear}-${monthNum}-${dayNum}`,
                     start_time: time,
                 }));
 
-                // Clear errors
                 setApiError('');
                 setSuggestedSlots([]);
             }
@@ -190,7 +174,6 @@ const BookingModal = ({ resource, onClose }) => {
 
     return (
         <>
-            {/* Success Toast */}
             {showToast && (
                 <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in z-50">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,10 +183,8 @@ const BookingModal = ({ resource, onClose }) => {
                 </div>
             )}
 
-            {/* Modal */}
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
                 <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                    {/* Header */}
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
                         <div>
                             <h2 className="text-2xl font-bold text-white">Book Resource</h2>
@@ -219,10 +200,8 @@ const BookingModal = ({ resource, onClose }) => {
                         </button>
                     </div>
 
-                    {/* Form */}
                     <div className="p-6">
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* API Error Display */}
                             {apiError && (
                                 <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
                                     <div className="flex items-start">
@@ -237,7 +216,6 @@ const BookingModal = ({ resource, onClose }) => {
                                                 {apiError}
                                             </p>
 
-                                            {/* Suggested Slots */}
                                             {suggestedSlots.length > 0 && (
                                                 <div className="mt-4">
                                                     <p className="text-sm font-medium text-red-800 mb-2">
@@ -265,7 +243,6 @@ const BookingModal = ({ resource, onClose }) => {
                                 </div>
                             )}
 
-                            {/* Date */}
                             <div>
                                 <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
                                     Date <span className="text-red-500">*</span>
@@ -284,9 +261,7 @@ const BookingModal = ({ resource, onClose }) => {
                                 )}
                             </div>
 
-                            {/* Time Inputs Side by Side */}
                             <div className="grid grid-cols-2 gap-4">
-                                {/* Start Time */}
                                 <div>
                                     <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-2">
                                         Start Time <span className="text-red-500">*</span>
@@ -305,7 +280,6 @@ const BookingModal = ({ resource, onClose }) => {
                                     )}
                                 </div>
 
-                                {/* End Time */}
                                 <div>
                                     <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
                                         End Time <span className="text-red-500">*</span>
@@ -325,7 +299,6 @@ const BookingModal = ({ resource, onClose }) => {
                                 </div>
                             </div>
 
-                            {/* Purpose */}
                             <div>
                                 <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-2">
                                     Purpose <span className="text-red-500">*</span>
@@ -345,7 +318,6 @@ const BookingModal = ({ resource, onClose }) => {
                                 )}
                             </div>
 
-                            {/* Action Buttons */}
                             <div className="flex gap-4 pt-4">
                                 <button
                                     type="submit"
