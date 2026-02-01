@@ -3,6 +3,8 @@ package resource
 import (
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Resource struct {
@@ -16,12 +18,14 @@ type Resource struct {
 	Properties       map[string]interface{} `json:"properties" gorm:"type:jsonb;serializer:json"`
 	CreatedAt        time.Time              `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt        time.Time              `json:"updated_at" gorm:"autoUpdateTime"`
+	DeletedAt        gorm.DeletedAt         `json:"deleted_at" gorm:"index"`
 }
 
 type ResourceType struct {
 	ID               int               `json:"id" gorm:"primaryKey;autoIncrement"`
-	Type             string            `json:"type" binding:"required" gorm:"unique"`
+	Type             string            `json:"type" binding:"required" gorm:"index:idx_resource_type_unique,unique,where:deleted_at IS NULL"`
 	SchemaDefinition map[string]string `json:"schema_definition" gorm:"type:jsonb;serializer:json"`
+	DeletedAt        gorm.DeletedAt    `json:"deleted_at" gorm:"index"`
 }
 
 type ResourceSummary struct {
