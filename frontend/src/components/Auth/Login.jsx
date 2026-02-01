@@ -45,12 +45,13 @@ const Login = () => {
         return newErrors;
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
+        console.log('handleSubmit called'); // Debug log
 
         const validationErrors = validate();
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
+            console.log('Validation errors:', validationErrors); // Debug log
             return;
         }
 
@@ -58,10 +59,13 @@ const Login = () => {
         setApiError('');
 
         try {
+            console.log('Sending login request...'); // Debug log
             const response = await axios.post('/api/auth/login', {
                 email: formData.email,
                 password: formData.password,
             });
+
+            console.log('Login response:', response); // Debug log
 
             const { token, user } = response.data;
 
@@ -80,8 +84,12 @@ const Login = () => {
                 }
             }
         } catch (error) {
+            console.log('Login error caught:', error); // Debug log
+
             if (error.response) {
-                setApiError(error.response.data.message || 'Login failed. Please try again.');
+                const errorMsg = error.response.data.message || 'Invalid email or password';
+                console.log('Setting API error:', errorMsg); // Debug log
+                setApiError(errorMsg);
             } else if (error.request) {
                 setApiError('No response from server. Please check your connection.');
             } else {
@@ -89,19 +97,17 @@ const Login = () => {
             }
         } finally {
             setLoading(false);
+            console.log('Login attempt finished'); // Debug log
         }
     };
 
     return (
         <div className="min-h-screen flex">
-            {/* Left Side - Welcome Section (Blue Background) */}
             <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-blue-700">
-                {/* Top Wave */}
                 <svg className="absolute top-0 left-0 w-full" viewBox="0 0 500 150" preserveAspectRatio="none" style={{ height: '200px' }}>
                     <path d="M0,100 C150,120 350,0 500,50 L500,0 L0,0 Z" fill="white" opacity="0.9"></path>
                 </svg>
 
-                {/* Content */}
                 <div className="relative z-10 flex items-center justify-center w-full h-full p-12">
                     <div className="text-center text-white space-y-6">
                         <h2 className="text-5xl font-bold">Welcome Back!</h2>
@@ -111,17 +117,14 @@ const Login = () => {
                     </div>
                 </div>
 
-                {/* Bottom Wave */}
                 <svg className="absolute bottom-0 left-0 w-full" viewBox="0 0 500 150" preserveAspectRatio="none" style={{ height: '200px' }}>
                     <path d="M0,50 C150,100 350,20 500,70 L500,150 L0,150 Z" fill="white" opacity="0.1"></path>
                 </svg>
 
-                {/* Decorative Circles */}
                 <div className="absolute top-10 right-10 w-32 h-32 bg-white rounded-full opacity-10"></div>
                 <div className="absolute bottom-20 left-10 w-24 h-24 bg-white rounded-full opacity-10"></div>
             </div>
 
-            {/* Right Side - Sign In Form (White Background) */}
             <div className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4">
                 <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 md:p-12">
                     <div className="mb-10">
@@ -129,14 +132,28 @@ const Login = () => {
                         <p className="text-gray-600">Sign in to your account</p>
                     </div>
 
-                    <div className="space-y-6">
-                        {apiError && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-                                {apiError}
-                            </div>
-                        )}
+                    {/* Error messages displayed here - outside the Hello section */}
+                    {(errors.email || errors.password || apiError) && (
+                        <div className="mb-6 space-y-2">
+                            {errors.email && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                                    {errors.email}
+                                </div>
+                            )}
+                            {errors.password && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                                    {errors.password}
+                                </div>
+                            )}
+                            {apiError && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                                    {apiError}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                        {/* Email Input */}
+                    <div className="space-y-6">
                         <div className="relative">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-5 h-5">
@@ -149,17 +166,13 @@ const Login = () => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e)}
                                 className={`w-full pl-20 pr-4 py-4 bg-gradient-to-r from-blue-50 to-blue-100/50 border-0 rounded-2xl focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-gray-700 placeholder-gray-400 ${errors.email ? 'ring-2 ring-red-400' : ''
                                     }`}
                                 placeholder="E-mail"
+                                autoComplete="email"
                             />
-                            {errors.email && (
-                                <p className="mt-2 text-sm text-red-600 ml-2">{errors.email}</p>
-                            )}
                         </div>
 
-                        {/* Password Input */}
                         <div className="relative">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-5 h-5">
@@ -172,10 +185,10 @@ const Login = () => {
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e)}
                                 className={`w-full pl-20 pr-14 py-4 bg-gradient-to-r from-blue-50 to-blue-100/50 border-0 rounded-2xl focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-gray-700 placeholder-gray-400 ${errors.password ? 'ring-2 ring-red-400' : ''
                                     }`}
                                 placeholder="Password"
+                                autoComplete="current-password"
                             />
                             <button
                                 type="button"
@@ -193,14 +206,15 @@ const Login = () => {
                                     </svg>
                                 )}
                             </button>
-                            {errors.password && (
-                                <p className="mt-2 text-sm text-red-600 ml-2">{errors.password}</p>
-                            )}
                         </div>
 
-                        {/* Submit Button */}
                         <button
-                            onClick={handleSubmit}
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleSubmit();
+                            }}
                             disabled={loading}
                             className={`w-full py-4 px-6 rounded-2xl font-semibold text-white text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg ${loading
                                 ? 'bg-blue-400 cursor-not-allowed'

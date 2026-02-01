@@ -76,7 +76,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
         setApiError('');
 
         try {
-            // Format date to match database format: YYYY-MM-DD HH:MM:SS+TZ
             const dobDate = new Date(formData.dob);
             const dobFormatted = `${formData.dob}T00:00:00+05:30`;
 
@@ -91,7 +90,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
 
             console.log('Submitting user data:', payload);
 
-            // FIXED: Changed from /api/auth/login to /api/admin/users
             const response = await axios.post('/api/admin/user', payload);
 
             console.log('User created successfully:', response.data);
@@ -128,7 +126,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
             onClick={handleBackgroundClick}
         >
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold text-white">Create New User</h2>
@@ -144,7 +141,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
                     </button>
                 </div>
 
-                {/* Form */}
                 <div className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {apiError && (
@@ -153,7 +149,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
                             </div>
                         )}
 
-                        {/* Name */}
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                                 Full Name
@@ -173,7 +168,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Email */}
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                                 Email Address
@@ -193,7 +187,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Role */}
                         <div>
                             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
                                 Role
@@ -214,7 +207,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Employee ID */}
                         <div>
                             <label htmlFor="employee_id" className="block text-sm font-medium text-gray-700 mb-2">
                                 Employee ID
@@ -234,7 +226,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Date of Birth */}
                         <div>
                             <label htmlFor="dob" className="block text-sm font-medium text-gray-700 mb-2">
                                 Date of Birth
@@ -253,7 +244,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Password */}
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                                 Password
@@ -273,7 +263,6 @@ const CreateUserForm = ({ onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex gap-4 pt-4">
                             <button
                                 type="submit"

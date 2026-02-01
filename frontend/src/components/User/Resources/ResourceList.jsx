@@ -43,13 +43,10 @@ const ResourceList = () => {
 
         const searchLower = searchTerm.toLowerCase();
         const filtered = resources.filter(resource => {
-            // Search in name
             if (resource.name.toLowerCase().includes(searchLower)) return true;
 
-            // Search in location
             if (resource.location.toLowerCase().includes(searchLower)) return true;
 
-            // Search in properties
             if (resource.properties) {
                 const propertiesString = JSON.stringify(resource.properties).toLowerCase();
                 if (propertiesString.includes(searchLower)) return true;
@@ -84,7 +81,6 @@ const ResourceList = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-8 px-4">
             <div className="max-w-7xl mx-auto">
-                {/* Header Section */}
                 <div className="mb-8">
                     <div className="flex items-center space-x-3 mb-2">
                         <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg">
@@ -100,7 +96,6 @@ const ResourceList = () => {
                     </div>
                 </div>
 
-                {/* Search Section */}
                 <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -127,7 +122,6 @@ const ResourceList = () => {
                         )}
                     </div>
 
-                    {/* Results Summary */}
                     <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -146,7 +140,6 @@ const ResourceList = () => {
                     </div>
                 </div>
 
-                {/* Error Message */}
                 {error && (
                     <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6 shadow-md">
                         <div className="flex items-center">
@@ -158,7 +151,6 @@ const ResourceList = () => {
                     </div>
                 )}
 
-                {/* Resources Grid */}
                 {filteredResources.length === 0 ? (
                     <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 p-16 text-center">
                         <div className="max-w-md mx-auto">
@@ -188,9 +180,9 @@ const ResourceList = () => {
                         {filteredResources.map((resource) => (
                             <div
                                 key={resource.id}
-                                className="group bg-white/80 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200"
+                                onClick={() => handleViewDetails(resource.id)}
+                                className="group bg-white/80 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 cursor-pointer"
                             >
-                                {/* Card Header */}
                                 <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 px-6 py-5 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
@@ -207,9 +199,7 @@ const ResourceList = () => {
                                     </div>
                                 </div>
 
-                                {/* Card Body */}
                                 <div className="p-6">
-                                    {/* Status Badge */}
                                     <div className="mb-4">
                                         <span
                                             className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${resource.is_active
@@ -222,7 +212,6 @@ const ResourceList = () => {
                                         </span>
                                     </div>
 
-                                    {/* Properties */}
                                     {resource.properties && Object.keys(resource.properties).length > 0 && (
                                         <div className="mb-4">
                                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -247,9 +236,8 @@ const ResourceList = () => {
                                         </div>
                                     )}
 
-                                    {/* Approval Badge */}
                                     {resource.requires_approval && (
-                                        <div className="mb-4">
+                                        <div>
                                             <span className="inline-flex items-center bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-lg text-xs font-semibold border border-yellow-200 shadow-sm">
                                                 <svg className="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -258,17 +246,6 @@ const ResourceList = () => {
                                             </span>
                                         </div>
                                     )}
-
-                                    {/* Action Button */}
-                                    <button
-                                        onClick={() => handleViewDetails(resource.id)}
-                                        className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center space-x-2 group"
-                                    >
-                                        <span>View Details</span>
-                                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                        </svg>
-                                    </button>
                                 </div>
                             </div>
                         ))}

@@ -55,13 +55,14 @@ const ResourceTable = ({ onEdit }) => {
         if (!window.confirm('Are you sure you want to delete this resource?')) {
             return;
         }
+
         try {
             setDeletingId(id);
             await axios.delete(`/api/admin/resources/${id}`);
             await fetchResources();
         } catch (err) {
             console.error('Delete error:', err);
-            alert('Failed to delete resource');  // no localhost message
+            alert('Failed to delete resource');
         } finally {
             setDeletingId(null);
         }
@@ -111,7 +112,7 @@ const ResourceTable = ({ onEdit }) => {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {resources.map((resource, index) => (
-                                <tr key={resource.id} className="hover:bg-gray-50 transition-colors">
+                                <tr key={resource.id} className="hover:bg-blue-50 transition-colors">
                                     <td className="px-4 py-4">{(pagination.page - 1) * pagination.limit + index + 1}</td>
                                     <td className="px-4 py-4 font-semibold text-gray-900">{resource.name}</td>
                                     <td className="px-4 py-4 text-gray-700">{resource.location}</td>
@@ -152,12 +153,10 @@ const ResourceTable = ({ onEdit }) => {
                 >
                     Previous
                 </button>
-
                 <span className="text-gray-700 font-medium">
                     Page {pagination.page}
                     {pagination.total > 0 && ` of ${Math.ceil(pagination.total / pagination.limit)}`}
                 </span>
-
                 <button
                     onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
                     disabled={resources.length < pagination.limit}

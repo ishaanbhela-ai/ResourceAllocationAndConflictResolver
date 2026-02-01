@@ -40,10 +40,8 @@ const BookingTable = () => {
         try {
             setCancellingId(bookingId);
 
-            // Call the cancel API
             await axios.patch(`/api/bookings/${bookingId}/cancel`);
 
-            // Update the local state immediately to reflect the change
             setBookings(prevBookings =>
                 prevBookings.map(booking =>
                     booking.id === bookingId
@@ -52,14 +50,12 @@ const BookingTable = () => {
                 )
             );
 
-            // Show success message
             alert('Booking cancelled successfully');
 
         } catch (err) {
             console.error('Error cancelling booking:', err);
             alert(err.response?.data?.message || 'Failed to cancel booking');
 
-            // Refresh bookings to ensure we have the correct state
             await fetchBookings();
         } finally {
             setCancellingId(null);
@@ -87,59 +83,26 @@ const BookingTable = () => {
 
     const getStatusBadge = (status) => {
         const statusConfig = {
-            pending: {
-                gradient: 'bg-gradient-to-r from-amber-400 to-orange-500',
-                shadow: 'shadow-amber-200',
-                label: 'Pending',
-                icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                )
-            },
-            approved: {
-                gradient: 'bg-gradient-to-r from-emerald-400 to-green-500',
-                shadow: 'shadow-green-200',
-                label: 'Approved',
-                icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                )
-            },
-            rejected: {
-                gradient: 'bg-gradient-to-r from-rose-400 to-red-500',
-                shadow: 'shadow-red-200',
-                label: 'Rejected',
-                icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                )
-            },
-            cancelled: {
-                gradient: 'bg-gradient-to-r from-slate-400 to-gray-500',
-                shadow: 'shadow-gray-200',
-                label: 'Cancelled',
-                icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                )
-            }
+            pending: 'bg-yellow-100 text-yellow-800',
+            approved: 'bg-green-100 text-green-800',
+            rejected: 'bg-red-100 text-red-800',
+            cancelled: 'bg-gray-100 text-gray-800'
         };
 
-        const config = statusConfig[status] || statusConfig.pending;
+        const statusLabels = {
+            pending: 'Pending',
+            approved: 'Approved',
+            rejected: 'Rejected',
+            cancelled: 'Cancelled'
+        };
 
         return (
-            <span className={`${config.gradient} ${config.shadow} shadow-lg text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide inline-flex items-center gap-2`}>
-                {config.icon}
-                {config.label}
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusConfig[status] || statusConfig.pending}`}>
+                {statusLabels[status] || status}
             </span>
         );
     };
 
-    // Filter bookings based on search term
     const filteredBookings = bookings.filter((booking) => {
         if (!searchTerm) return true;
 
@@ -155,7 +118,6 @@ const BookingTable = () => {
 
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
-        // Reset to page 1 when searching
         setPagination((prev) => ({ ...prev, page: 1 }));
     };
 
@@ -215,7 +177,6 @@ const BookingTable = () => {
 
     return (
         <div className="space-y-6">
-            {/* Search Bar - Compact version on left */}
             <div className="flex items-center">
                 <div className="relative w-64">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -268,7 +229,6 @@ const BookingTable = () => {
                 )}
             </div>
 
-            {/* No Results Message */}
             {filteredBookings.length === 0 && searchTerm ? (
                 <div className="bg-white rounded-lg shadow-md p-12 text-center">
                     <svg
@@ -297,7 +257,6 @@ const BookingTable = () => {
                 </div>
             ) : (
                 <>
-                    {/* Table */}
                     <div className="bg-white rounded-lg shadow-md overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -366,10 +325,8 @@ const BookingTable = () => {
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                </svg>
-                                                                Cancel Booking
+                                                               
+                                                                Cancel 
                                                             </>
                                                         )}
                                                     </button>
@@ -396,7 +353,6 @@ const BookingTable = () => {
                         </div>
                     </div>
 
-                    {/* Pagination - Only show if not searching */}
                     {!searchTerm && (
                         <div className="flex justify-center items-center gap-4">
                             <button

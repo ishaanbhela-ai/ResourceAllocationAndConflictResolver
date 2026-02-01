@@ -1,6 +1,4 @@
-// ============================================================
-// FILE: src/components/Admin/Bookings/ApproveModal.jsx
-// ============================================================
+
 import React, { useState } from 'react';
 import axios from '../../../api/axios';
 
