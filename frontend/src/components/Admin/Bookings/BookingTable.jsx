@@ -314,80 +314,96 @@ const BookingTable = ({ onApprove, onReject }) => {
                                     }
 
                                     return (
-                                        <tr key={booking.id || booking._id} className="hover:bg-blue-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {(pagination.page - 1) * pagination.limit + index + 1}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {booking.resource_name || booking.resource?.name || 'Unknown'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {booking.user_name || booking.user?.name || 'Unknown User'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {formatDate(booking.start_time || booking.startTime)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {formatTime(booking.start_time || booking.startTime)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {formatTime(booking.end_time || booking.endTime)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {getStatusBadge(displayStatus)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                {booking.status === 'pending' && (
-                                                    <div className="flex gap-2">
+                                        <React.Fragment key={booking.id || booking._id}>
+                                            {/* Main Info Row */}
+                                            <tr className="bg-white hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium w-20 text-center align-middle" rowSpan="2">
+                                                    {(pagination.page - 1) * pagination.limit + index + 1}
+                                                </td>
+                                                <td className="px-6 pt-4 pb-2 whitespace-nowrap text-sm text-gray-900">
+                                                    {booking.resource_name || booking.resource?.name || 'Unknown'}
+                                                </td>
+                                                <td className="px-6 pt-4 pb-2 whitespace-nowrap text-sm text-gray-900">
+                                                    <div className="flex items-center">
+                                                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3 text-xs">
+                                                            {(booking.user_name || booking.user?.name || 'U').charAt(0).toUpperCase()}
+                                                        </div>
+                                                        {booking.user_name || booking.user?.name || 'Unknown User'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 pt-4 pb-2 whitespace-nowrap text-sm text-gray-900">
+                                                    {formatDate(booking.start_time || booking.startTime)}
+                                                </td>
+                                                <td className="px-6 pt-4 pb-2 whitespace-nowrap text-sm text-gray-900">
+                                                    {formatTime(booking.start_time || booking.startTime)}
+                                                </td>
+                                                <td className="px-6 pt-4 pb-2 whitespace-nowrap text-sm text-gray-900">
+                                                    {formatTime(booking.end_time || booking.endTime)}
+                                                </td>
+                                                <td className="px-6 pt-4 pb-2 whitespace-nowrap">
+                                                    {getStatusBadge(displayStatus)}
+                                                </td>
+                                                {/* Actions cell spans both 'visual' rows */}
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm" rowSpan="2">
+                                                    {booking.status === 'pending' && (
+                                                        <div className="flex flex-col gap-2">
+                                                            <button
+                                                                onClick={() => onApprove(booking)}
+                                                                className="px-3 py-1 bg-green-500 text-white rounded text-xs font-medium hover:bg-green-600 transition shadow-sm"
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => onReject(booking)}
+                                                                className="px-3 py-1 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition shadow-sm"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {booking.status === 'approved' && inCheckInWindow && (
                                                         <button
-                                                            onClick={() => onApprove(booking)}
-                                                            className="px-4 py-2 bg-green-500 text-white rounded font-medium hover:bg-green-600 transition"
+                                                            onClick={() => handleCheckIn(booking)}
+                                                            className="px-3 py-1 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600 transition shadow-sm w-full"
                                                         >
-                                                            Approve
+                                                            Check In
                                                         </button>
-                                                        <button
-                                                            onClick={() => onReject(booking)}
-                                                            className="px-4 py-2 bg-red-500 text-white rounded font-medium hover:bg-red-600 transition"
-                                                        >
-                                                            Reject
-                                                        </button>
-                                                    </div>
-                                                )}
-                                                {booking.status === 'approved' && inCheckInWindow && (
-                                                    <button
-                                                        onClick={() => handleCheckIn(booking)}
-                                                        className="px-4 py-2 bg-blue-500 text-white rounded font-medium hover:bg-blue-600 transition shadow-sm"
-                                                    >
-                                                        Check In
-                                                        <span className="block text-xs mt-1 opacity-90">(15 min window)</span>
-                                                    </button>
-                                                )}
-                                                {booking.status === 'approved' && checkInPassed && (
-                                                    <div className="text-orange-600 font-medium">
-                                                        Not Checked In
-                                                        <div className="text-xs text-gray-500 mt-1">Window closed</div>
-                                                    </div>
-                                                )}
-                                                {booking.status === 'approved' && !inCheckInWindow && !checkInPassed && (
-                                                    <div className="text-gray-600 text-sm">
-                                                        Waiting for check-in time
-                                                    </div>
-                                                )}
-                                                {booking.status === 'checked-in' && (
-                                                    <div className="text-blue-600 font-medium flex items-center gap-2">
-                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                    )}
+                                                    {booking.status === 'approved' && checkInPassed && (
+                                                        <div className="text-orange-600 font-medium text-xs text-center">
+                                                            Not Checked In
+                                                            <div className="text-xs text-gray-500">Window closed</div>
+                                                        </div>
+                                                    )}
+                                                    {booking.status === 'approved' && !inCheckInWindow && !checkInPassed && (
+                                                        <div className="text-gray-500 text-xs italic text-center">
+                                                            Waiting for check-in time
+                                                        </div>
+                                                    )}
+                                                    {booking.status === 'checked-in' && (
+                                                        <div className="text-blue-600 font-medium flex justify-center">
+                                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                            {/* Reason / Purpose Row */}
+                                            <tr className="bg-white hover:bg-gray-50 transition-colors border-b border-gray-200">
+                                                <td colSpan="6" className="px-6 pb-4 pt-1 text-sm text-gray-500">
+                                                    <div className="flex items-start bg-gray-50 p-2 rounded-md border border-gray-100">
+                                                        <svg className="w-4 h-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                                         </svg>
-                                                        Checked In
+                                                        <div>
+                                                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Purpose:</span>
+                                                            <span className="ml-2 text-gray-700">{booking.purpose || 'No reason provided'}</span>
+                                                        </div>
                                                     </div>
-                                                )}
-                                                {!['pending', 'approved', 'checked-in'].includes(booking.status) && (
-                                                    <div className="text-gray-500 text-sm">
-                                                        No actions
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
+                                                </td>
+                                            </tr>
+                                        </React.Fragment>
                                     );
                                 })}
                             </tbody>
