@@ -5,7 +5,6 @@ import (
 	"ResourceAllocator/internal/api/resource"
 	"ResourceAllocator/internal/api/routes"
 	"ResourceAllocator/internal/api/user"
-	"ResourceAllocator/internal/api/utils"
 	"ResourceAllocator/internal/database"
 	"ResourceAllocator/internal/database/repository"
 	"log"
@@ -35,6 +34,14 @@ func main() {
 	}
 
 	// ============================================
+	// BOOKING FEATURE - Dependency Injection Chain
+	// ============================================
+	// MOVED UP: Needed by Resource Handler
+	bookingRepo := repository.NewBookingRepository(db.GetConnection())
+	bookingService := booking.NewBookingService(bookingRepo)
+	bookingHandler := booking.NewBookingHandler(bookingService)
+
+	// ============================================
 	// USER FEATURE - Dependency Injection Chain
 	// ============================================
 	userRepo := repository.NewUserRepository(db.GetConnection())
@@ -46,14 +53,7 @@ func main() {
 	// ============================================
 	resourceRepo := repository.NewResourceRepository(db.GetConnection())
 	resourceService := resource.NewResourceService(resourceRepo)
-	resourceHandler := resource.NewResourceHandler(resourceService)
-
-	// ============================================
-	// BOOKING FEATURE - Dependency Injection Chain
-	// ============================================
-	bookingRepo := repository.NewBookingRepository(db.GetConnection())
-	bookingService := booking.NewBookingService(bookingRepo)
-	bookingHandler := booking.NewBookingHandler(bookingService)
+	resourceHandler := resource.NewResourceHandler(resourceService, bookingService)
 
 	// ============================================
 	// BACKGROUND WORKER - Auto-Release Unchecked Bookings
@@ -155,7 +155,7 @@ func main() {
 		}
 	}()
 
-	go utils.StartEmailWorker()
+	// go utils.StartEmailWorker()
 
 	appHandlers := routes.NewHandlers(
 		userHandler,

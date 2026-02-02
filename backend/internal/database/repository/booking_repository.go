@@ -23,7 +23,9 @@ func (r *BookingRepository) CreateBooking(b *booking.Booking) error {
 
 func (r *BookingRepository) GetBookingByID(id int) (*booking.Booking, error) {
 	var b booking.Booking
-	if err := r.db.Preload("Resource").Preload("User").First(&b, id).Error; err != nil {
+	if err := r.db.Preload("Resource", func(db *gorm.DB) *gorm.DB {
+		return db.Unscoped()
+	}).Preload("User").First(&b, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("%w: booking not found", utils.ErrNotFound)
 		}
@@ -83,7 +85,9 @@ func (r *BookingRepository) ApproveBookingAndRejectConflicts(targetBooking *book
 
 		// 2. Find Conflicts (Fetch Booking + User for Email)
 		// We explicitly fetch them first to get the User data
-		if err := tx.Preload("User").Preload("Resource").
+		if err := tx.Preload("User").Preload("Resource", func(db *gorm.DB) *gorm.DB {
+			return db.Unscoped()
+		}).
 			Where("resource_id = ? AND status = ? AND id != ?", targetBooking.ResourceID, booking.StatusPending, targetBooking.ID).
 			Where("start_time < ? AND end_time > ?", targetBooking.EndTime, targetBooking.StartTime).
 			Find(&rejectedBookings).Error; err != nil {
@@ -117,7 +121,9 @@ func (r *BookingRepository) GetBookingsByUserID(userID string, filters map[strin
 	var bookings []booking.Booking
 	var total int64
 
-	query := r.db.Model(&booking.Booking{}).Preload("Resource").Preload("User").Where("user_id = ?", userID)
+	query := r.db.Model(&booking.Booking{}).Preload("Resource", func(db *gorm.DB) *gorm.DB {
+		return db.Unscoped()
+	}).Preload("User").Where("user_id = ?", userID)
 
 	// Apply Filters (Status, ResourceID)
 	if val, ok := filters["status"]; ok && val != "" {
@@ -146,7 +152,9 @@ func (r *BookingRepository) GetAllBookings(filters map[string]interface{}, pagin
 	var bookings []booking.Booking
 	var total int64
 
-	query := r.db.Model(&booking.Booking{}).Preload("Resource").Preload("User")
+	query := r.db.Model(&booking.Booking{}).Preload("Resource", func(db *gorm.DB) *gorm.DB {
+		return db.Unscoped()
+	}).Preload("User")
 
 	// Apply Filters
 	for key, value := range filters {
@@ -172,7 +180,9 @@ func (r *BookingRepository) GetAllBookings(filters map[string]interface{}, pagin
 
 func (r *BookingRepository) GetFutureApprovedBookings(resourceID int, startTime time.Time) ([]booking.Booking, error) {
 	var bookings []booking.Booking
-	err := r.db.Preload("Resource").Preload("User").Where("resource_id = ? AND status = ? AND end_time > ?", resourceID, booking.StatusApproved, startTime).
+	err := r.db.Preload("Resource", func(db *gorm.DB) *gorm.DB {
+		return db.Unscoped()
+	}).Preload("User").Where("resource_id = ? AND status = ? AND end_time > ?", resourceID, booking.StatusApproved, startTime).
 		Order("start_time asc").
 		Find(&bookings).Error
 	return bookings, err
@@ -207,7 +217,9 @@ func (r *BookingRepository) ReleaseUncheckedBookings(cutoffTime time.Time) error
 func (r *BookingRepository) GetApprovedBookingsStartingAt(startTime time.Time) ([]booking.Booking, error) {
 	var bookings []booking.Booking
 	// We need User data for the email address and Resource data for the name
-	err := r.db.Preload("User").Preload("Resource").
+	err := r.db.Preload("User").Preload("Resource", func(db *gorm.DB) *gorm.DB {
+		return db.Unscoped()
+	}).
 		Where("status = ? AND start_time = ?", booking.StatusApproved, startTime).
 		Find(&bookings).Error
 	return bookings, err
@@ -252,4 +264,25 @@ func (r *BookingRepository) GetTopReleasingUsers(limit int) ([]booking.Dashboard
 		Limit(limit).
 		Scan(&stats).Error
 	return stats, err
+}
+
+func (r *BookingRepository) GetActiveBookingsForResource(resourceID int) ([]booking.Booking, error) {
+	var bookings []booking.Booking
+	// We want PENDING or APPROVED bookings in the FUTURE
+	err := r.db.Preload("User").
+		Where("resource_id = ? AND status IN ? AND end_time > ?",
+			resourceID,
+			[]booking.BookingStatus{booking.StatusPending, booking.StatusApproved},
+			time.Now(),
+		).Find(&bookings).Error
+	return bookings, err
+}
+
+func (r *BookingRepository) CancelBookingsBatch(ids []int) error {
+	return r.db.Model(&booking.Booking{}).
+		Where("id IN ?", ids).
+		Updates(map[string]interface{}{
+			"status":           booking.StatusCancelled,
+			"rejection_reason": "Resource has been deleted/decommissioned by Admin",
+		}).Error
 }

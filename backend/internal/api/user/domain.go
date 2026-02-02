@@ -18,9 +18,9 @@ type User struct {
 	UUID       string         `json:"uuid" gorm:"primaryKey;type:varchar(36)"`
 	Name       string         `json:"name" binding:"required"`
 	DOB        time.Time      `json:"dob" binding:"required"`
-	EmployeeID string         `json:"employee_id" binding:"required" gorm:"unique"`
+	EmployeeID string         `json:"employee_id" binding:"required" gorm:"index:idx_employee_id_unique,unique,where:deleted_at IS NULL"`
 	Role       Role           `json:"role" binding:"required,oneof=ADMIN EMPLOYEE"`
-	Email      string         `json:"email" binding:"required,email" gorm:"unique;not null"`
+	Email      string         `json:"email" binding:"required,email" gorm:"index:idx_email_unique,unique,where:deleted_at IS NULL;not null"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"index"`

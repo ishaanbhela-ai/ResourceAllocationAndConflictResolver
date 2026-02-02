@@ -25,6 +25,8 @@ type IBookingRepo interface {
 	CancelExpiredPendingBookings(cutoffTime time.Time) error
 	GetTopBookedResources(limit int) ([]DashboardResourceStat, error)
 	GetTopReleasingUsers(limit int) ([]DashboardUserStat, error)
+	GetActiveBookingsForResource(resourceID int) ([]Booking, error)
+	CancelBookingsBatch(ids []int) error
 }
 
 type BookingService struct {
@@ -382,4 +384,38 @@ func (s *BookingService) GetDashboardResourceStats() ([]DashboardResourceStat, e
 func (s *BookingService) GetDashboardUserStats() ([]DashboardUserStat, error) {
 	// Requirement: Top 5 users
 	return s.BookingRepo.GetTopReleasingUsers(5)
+}
+
+func (s *BookingService) CancelAllBookingsForResource(resourceID int) error {
+	// 1. Fetch all future/active bookings for this resource
+	bookings, err := s.BookingRepo.GetActiveBookingsForResource(resourceID)
+	if err != nil {
+		return err
+	}
+
+	if len(bookings) == 0 {
+		return nil
+	}
+
+	// 2. Collect IDs
+	var ids []int
+	for _, b := range bookings {
+		ids = append(ids, b.ID)
+	}
+
+	// 3. Bulk Update in DB (One Query)
+	if err := s.BookingRepo.CancelBookingsBatch(ids); err != nil {
+		return err
+	}
+
+	// 4. Send Emails (Iterate in memory)
+	for _, b := range bookings {
+		log.Printf("Sending cancellation email to %s for booking %d", b.User.Email, b.ID)
+		subject := "IMPORTANT: Booking Cancelled - Resource Deleted"
+		body := fmt.Sprintf("Hello %s,\n\nWe regret to inform you that your booking for Resource (ID: %d) has been CANCELLED because the resource itself has been removed from the system by an administrator.\n\nBooking ID: %d\nSlot: %s - %s\n\nWe apologize for the inconvenience.",
+			b.User.Name, resourceID, b.ID, b.StartTime.Format("Mon, 02 Jan 15:04"), b.EndTime.Format("15:04"))
+
+		utils.SendEmail(body, b.User.Email, subject)
+	}
+	return nil
 }
