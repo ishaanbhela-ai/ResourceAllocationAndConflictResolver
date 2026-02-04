@@ -1,0 +1,1158 @@
+openapi: 3.0.3
+info:
+  title: Resource Management API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/
+
+# --- Security Definition ---
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+# --- Global Security (Default) ---
+security:
+  - BearerAuth: []
+
+paths:
+  # ----------------------------
+  # HEALTH CHECK (No Auth)
+  # ----------------------------
+  /health:
+    get:
+      summary: Health Check
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+
+  # ----------------------------
+  # AUTH (No Auth)
+  # ----------------------------
+  /api/auth/login:
+    post:
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: 
+                  type: string
+                  example: "string"
+                password: 
+                  type: string
+                  example: "string"
+      responses:
+        '200':
+          description: Login Successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "string"
+                  user:
+                    type: object
+                    properties:
+                      uuid:
+                        type: string
+                        example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name:
+                        type: string
+                        example: "string"
+                      email:
+                        type: string
+                        example: "user@example.com"
+                      role:
+                        type: string
+                        example: "ADMIN"
+                      employee_id:
+                        type: string
+                        example: "string"
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: &StandardError
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "sometext"
+
+  # ----------------------------
+  # ADMIN: USER
+  # ----------------------------
+  /api/admin/user:
+    post:
+      summary: Create New User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: 
+                  type: string
+                  example: "string"
+                email: 
+                  type: string
+                  example: "string"
+                role: 
+                  type: string
+                  example: "ADMIN"
+                employee_id: 
+                  type: string
+                  example: "string"
+                dob: 
+                  type: string
+                  example: "2026-01-21T18:14:55.734Z"
+                password: 
+                  type: string
+                  example: "string"
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uuid:
+                    type: string
+                    example: "b0742f8c-90e3-4b37-91a8-370ae214ee57"
+                  name:
+                    type: string
+                    example: "Tanush Shah"
+                  dob:
+                    type: string
+                    example: "1998-06-15T00:00:00Z"
+                  employee_id:
+                    type: string
+                    example: "JIN0191"
+                  role:
+                    type: string
+                    example: "EMPLOYEE"
+                  email:
+                    type: string
+                    example: "tanush@gmail.com"
+                  created_at:
+                    type: string
+                    example: "2026-01-21T23:49:33.577457275+05:30"
+                  updated_at:
+                    type: string
+                    example: "2026-01-21T23:49:33.577457275+05:30"
+                  deleted_at:
+                    type: string
+                    nullable: true
+                    example: null
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+    get:
+      summary: List Users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uuid: 
+                          type: string
+                          example: "b0742f8c-90e3-4b37-91a8-370ae214ee57"
+                        name: 
+                          type: string
+                          example: "Tanush Shah"
+                        employee_id: 
+                          type: string
+                          example: "JIN0191"
+                        role: 
+                          type: string
+                          example: "EMPLOYEE"
+                  meta:
+                    type: object
+                    properties:
+                      page: 
+                        type: integer
+                        example: 1
+                      limit: 
+                        type: integer
+                        example: 10
+                      total: 
+                        type: integer
+                        example: 1
+                      total_pages: 
+                        type: integer
+                        example: 1
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/admin/user/{uuid}:
+    delete:
+      summary: Delete User
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  # ----------------------------
+  # ADMIN: RESOURCE TYPES
+  # ----------------------------
+  /api/admin/resource_types:
+    post:
+      summary: Create Resource Type
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: 
+                  type: string
+                  example: "meeting room"
+                schema_definition:
+                  type: object
+                  example: { "capacity": "int (Can have more or no key value pairs)" }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: 
+                    type: integer
+                    example: 5
+                  type: 
+                    type: string
+                    example: "meeting room"
+                  schema_definition:
+                    type: object
+                    example: { "capacity": "int" }
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/admin/resource_types/{id}:
+    delete:
+      summary: Delete Resource Type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  # ----------------------------
+  # ADMIN: RESOURCES
+  # ----------------------------
+  /api/admin/resources:
+    post:
+      summary: Create Resource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: 
+                  type: string
+                  example: "Emerald"
+                type_id: 
+                  type: integer
+                  example: 5
+                location: 
+                  type: string
+                  example: "Office"
+                description: 
+                  type: string
+                  example: "ABCD"
+                properties:
+                  type: object
+                  example: { "capacity": 10 }
+                  description: (AS PER SCHEMA DEFINED WHILE CREATING A RESOURCE TYPE)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: 
+                    type: integer
+                    example: 1
+                  name: 
+                    type: string
+                    example: "Emerald"
+                  type_id: 
+                    type: integer
+                    example: 5
+                  location: 
+                    type: string
+                    example: "Office"
+                  description: 
+                    type: string
+                    example: "ABCD"
+                  is_active: 
+                    type: boolean
+                    example: true
+                  requires_approval: 
+                    type: boolean
+                    example: false
+                  properties:
+                    type: object
+                    example: { "capacity": 10 }
+                  created_at: 
+                    type: string
+                    example: "2026-01-22T00:04:12.415036883+05:30"
+                  updated_at: 
+                    type: string
+                    example: "2026-01-22T00:04:12.415036883+05:30"
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/admin/resources/{id}:
+    delete:
+      summary: Delete Resource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      description: Deletes resource using query param ID as per spec
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+    put:
+      summary: Update Resource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: 
+                  type: string
+                  example: "Emerald"
+                type_id: 
+                  type: integer
+                  example: 5
+                location: 
+                  type: string
+                  example: "Office"
+                description: 
+                  type: string
+                  example: "ABCD"
+                properties:
+                  type: object
+                  example: { "capacity": 10 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: 
+                    type: integer
+                    example: 1
+                  name: 
+                    type: string
+                    example: "Emerald"
+                  type_id: 
+                    type: integer
+                    example: 5
+                  location: 
+                    type: string
+                    example: "Office"
+                  description: 
+                    type: string
+                    example: "ABCD"
+                  is_active: 
+                    type: boolean
+                    example: true
+                  requires_approval: 
+                    type: boolean
+                    example: false
+                  properties:
+                    type: object
+                    example: { "capacity": 10 }
+                  created_at: 
+                    type: string
+                    example: "2026-01-22T00:04:12.415036883+05:30"
+                  updated_at: 
+                    type: string
+                    example: "2026-01-22T00:04:12.415036883+05:30"
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  # ----------------------------
+  # RESOURCES (Public/Filter)
+  # ----------------------------
+  /api/resources:
+    get:
+      summary: List Resources
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: type_id
+          in: query
+          schema:
+            type: integer
+        - name: location
+          in: query
+          schema:
+            type: string
+        # Note: OpenAPI doesn't explicitly support "prop_*" wildcards in definitions, 
+        # so we document it in description or just generic query params.
+        - name: prop_capacity
+          in: query
+          description: Example of dynamic property filter
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: 
+                          type: integer
+                          example: 1
+                        name: 
+                          type: string
+                          example: "Emerald"
+                        type_id: 
+                          type: integer
+                          example: 5
+                        location: 
+                          type: string
+                          example: "Office"
+                        is_active: 
+                          type: boolean
+                          example: false
+                  meta:
+                    type: object
+                    properties:
+                      page: 
+                        type: integer
+                        example: 1
+                      limit: 
+                        type: integer
+                        example: 10
+                      total: 
+                        type: integer
+                        example: 1
+                      total_pages: 
+                        type: integer
+                        example: 1
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/resources/{id}:
+    get:
+      summary: Get Single Resource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: 
+                    type: integer
+                    example: 1
+                  name: 
+                    type: string
+                    example: "Emerald"
+                  type_id: 
+                    type: integer
+                    example: 5
+                  location: 
+                    type: string
+                    example: "Office"
+                  description: 
+                    type: string
+                    example: "ABCD"
+                  is_active: 
+                    type: boolean
+                    example: false
+                  requires_approval: 
+                    type: boolean
+                    example: false
+                  properties:
+                    type: object
+                    nullable: true
+                    example: null
+                  created_at: 
+                    type: string
+                    example: "0001-01-01T05:53:28+05:53"
+                  updated_at: 
+                    type: string
+                    example: "2026-01-22T00:06:53.561995+05:30"
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  # ----------------------------
+  # RESOURCE TYPES (Public)
+  # ----------------------------
+  /api/resource_types:
+    get:
+      summary: List Resource Types
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: 
+                          type: integer
+                          example: 1
+                        type: 
+                          type: string
+                          example: "laptop"
+                  meta:
+                    type: object
+                    properties:
+                      page: 
+                        type: integer
+                        example: 1
+                      limit: 
+                        type: integer
+                        example: 1
+                      total: 
+                        type: integer
+                        example: 4
+                      total_pages: 
+                        type: integer
+                        example: 4
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/resource_types/{id}:
+    get:
+      summary: Get Resource Type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: 
+                    type: integer
+                    example: 1
+                  type: 
+                    type: string
+                    example: "laptop"
+                  schema_definition:
+                    type: object
+                    example: { "os": "string", "ram": "int", "storage": "int" }
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  # ----------------------------
+  # USER PROFILE
+  # ----------------------------
+  /api/user:
+    get:
+      summary: Get My Profile
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uuid: 
+                    type: string
+                    example: "2c10eebf-2cc3-497e-a5fc-645dab9842bb"
+                  name: 
+                    type: string
+                    example: "Ishaan Bhela"
+                  dob: 
+                    type: string
+                    example: "1998-06-15T05:30:00+05:30"
+                  employee_id: 
+                    type: string
+                    example: "JIN0194"
+                  role: 
+                    type: string
+                    example: "EMPLOYEE"
+                  email: 
+                    type: string
+                    example: "ishaanbhela@gmail.com"
+                  created_at: 
+                    type: string
+                    example: "2026-01-22T08:22:03.465929+05:30"
+                  updated_at: 
+                    type: string
+                    example: "2026-01-22T08:22:03.465929+05:30"
+                  deleted_at:
+                    type: string
+                    nullable: true
+                    example: null
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/user/password:
+    patch:
+      summary: Update Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password: 
+                  type: string
+                  example: "abc"
+                new_password: 
+                  type: string
+                  example: "abcd"
+                confirm_new_password: 
+                  type: string
+                  example: "abcd"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Password updated successfully"
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  # ----------------------------
+  # BOOKINGS
+  # ----------------------------
+  /api/bookings:
+    post:
+      summary: Create Booking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resource_id: 
+                  type: integer
+                  example: 1
+                start_time: 
+                  type: string
+                  example: "2026-01-23T10:00:00+05:30"
+                end_time: 
+                  type: string
+                  example: "2026-01-23T14:00:00+05:30"
+                purpose: 
+                  type: string
+                  example: "Team Sprint Planning"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: 
+                    type: integer
+                    example: 1
+                  resource_name: 
+                    type: string
+                    example: "Laptop #0001"
+                  user_name: 
+                    type: string
+                    example: "Ishaan Bhela"
+                  start_time: 
+                    type: string
+                    example: "2026-01-23T10:00:00+05:30"
+                  end_time: 
+                    type: string
+                    example: "2026-01-23T14:00:00+05:30"
+                  status: 
+                    type: string
+                    example: "pending"
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+    get:
+      summary: List My Bookings
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: resource_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: 
+                          type: integer
+                          example: 2
+                        resource_name: 
+                          type: string
+                          example: "Laptop #0004"
+                        user_name: 
+                          type: string
+                          example: "Ishaan Bhela"
+                        start_time: 
+                          type: string
+                          example: "2026-01-27T12:00:00+05:30"
+                        end_time: 
+                          type: string
+                          example: "2026-01-27T14:00:00+05:30"
+                        status: 
+                          type: string
+                          example: "pending"
+                  meta:
+                    type: object
+                    properties:
+                      page: 
+                        type: integer
+                        example: 1
+                      limit: 
+                        type: integer
+                        example: 1
+                      total: 
+                        type: integer
+                        example: 2
+                      total_pages: 
+                        type: integer
+                        example: 2
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  # ----------------------------
+  # ADMIN: BOOKINGS
+  # ----------------------------
+  /api/admin/bookings:
+    get:
+      summary: List All Bookings
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: resource_id
+          in: query
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: 
+                          type: integer
+                          example: 2
+                        resource_name: 
+                          type: string
+                          example: "Laptop #0004"
+                        user_name: 
+                          type: string
+                          example: "Ishaan Bhela"
+                        start_time: 
+                          type: string
+                          example: "2026-01-27T12:00:00+05:30"
+                        end_time: 
+                          type: string
+                          example: "2026-01-27T14:00:00+05:30"
+                        status: 
+                          type: string
+                          example: "pending"
+                  meta:
+                    type: object
+                    properties:
+                      page: 
+                        type: integer
+                        example: 1
+                      limit: 
+                        type: integer
+                        example: 1
+                      total: 
+                        type: integer
+                        example: 1
+                      total_pages: 
+                        type: integer
+                        example: 1
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/admin/bookings/{id}/status:
+    patch:
+      summary: Approve/Reject Booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: 
+                  type: string
+                  example: "approved"
+                rejection_reason: 
+                  type: string
+                  example: ""
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Booking status updated successfully"
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/bookings/{id}/cancel:
+    patch:
+      summary: Cancel Booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 2
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema: *StandardError
+
+  /api/bookings/{id}/checkin:
+    patch:
+      summary: Checkin into a booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 2
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "successfully checked in booking. enjoy!" 
+    # ----------------------------
+  # DASHBOARD
+  # ----------------------------
+  /api/admin/dashboard/resources:
+    get:
+      summary: Get Dashboard Resource Statistics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        resource_id:
+                          type: integer
+                          example: 1
+                        resource_name:
+                          type: string
+                          example: "Emerald Meeting Room"
+                        pending:
+                          type: integer
+                          example: 3
+                        approved:
+                          type: integer
+                          example: 5
+                        utilized:
+                          type: integer
+                          example: 4
+                        total:
+                          type: integer
+                          example: 12
+                      required:
+                        - resource_id
+                        - resource_name
+                        - pending
+                        - approved
+                        - utilized
+                        - total
+        '204':
+          description: No Content
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "sometext"
+
+  /api/admin/dashboard/users:
+    get:
+      summary: Get Dashboard User Statistics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_id:
+                          type: string
+                          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                        user_name:
+                          type: string
+                          example: "Ishaan Bhela"
+                        released_count:
+                          type: integer
+                          example: 7
+                      required:
+                        - user_id
+                        - user_name
+                        - released_count
+        '204':
+          description: No Content
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "sometext"
