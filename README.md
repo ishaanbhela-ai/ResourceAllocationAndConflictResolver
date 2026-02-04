@@ -1,80 +1,137 @@
-# Resource Allocation & Conflict Resolver
+# **🏢 Resource Allocation & Conflict Resolver**
 
-A robust, high-concurrency backend system for managing office resources (conference rooms, equipment) with atomic conflict resolution, role-based access control, and automated lifecycle management.
-
----
-
-## 🚀 Key Features
-
-### 1. **User Management & Security**
-*   **Role-Based Access Control (RBAC):** Distinct roles for **Admins** (Inventory management) and **Employees** (Booking).
-*   **Secure Authentication:** JWT-based stateless authentication with strict password hashing (Bcrypt).
-*   **Input Sanitization:** Automatic trimming and validation of user inputs to prevent data anomalies.
-
-### 2. **Smart Booking System**
-*   **Atomic Conflict Resolution:** Uses Database Transactions to ensure **zero double-bookings** even under high concurrency.
-*   **Smart Suggestions:** Algorithm suggests up to 4 alternative time slots if the requested slot is busy.
-*   **Strict Time Enforcement:** Bookings are aligned to hourly slots (e.g., 9:00, 10:00) for optimal utilization.
-*   **Reciprocal Cancellation:** Deleting a resource automatically notifies/cancels future bookings for that resource.
-
-### 3. **Lifecycle Automation (Background Jobs)**
-*   **Auto-Release Mechanism:** A background ticker (running hourly) automatically identifies and releases bookings where the user failed to "Check-In" within 15 minutes.
-*   **Check-In System:** Users must explicitly check in to secure their utilization.
-
-### 4. **Resource Inventory**
-*   **Dynamic Properties:** Support for custom resource attributes (JSONB) like "Projector Available", "Capacity", etc.
-*   **Advanced Filtering:** Search resources by Type, Location, Availability (Time window), and custom properties.
+A robust, high-concurrency backend system for managing office resources (conference rooms, equipment) with atomic conflict resolution, role-based access control, and automated lifecycle management — paired with a modern React frontend.
 
 ---
 
-## 🛠️ Technology Stack
+## **🚀 Key Features**
 
-*   **Language:** Golang (1.21+)
-*   **Framework:** Gin Web Framework (High performance HTTP router)
-*   **Database:** PostgreSQL
-*   **ORM:** GORM (Object Relational Mapping)
-*   **Concurrency:** Goroutines & Channels (for Background Jobs)
-*   **Auth:** JWT (JSON Web Tokens)
+### **1\. User Management & Security**
 
----
+* **Role-Based Access Control (RBAC):**
 
-## ⚙️ Setup & Installation
+  * **Admins:** Manage inventory and system configuration
 
-### Prerequisites
-*   Go 1.21+ installed
-*   PostgreSQL running locally or via Docker
+  * **Employees:** Book and manage resources
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/ishaanbhela-ai/ResourceAllocationAndConflictResolver.git
-cd ResourceAllocationAndConflictResolver/backend
-```
+* **Secure Authentication:** JWT-based stateless authentication with Bcrypt password hashing
 
-### 2. Environment Configuration
-Create a `.env` file in the `backend` root:
-```env
-DB_HOST=localhost
-DB_USER=postgres
-DB_PASSWORD=yourpassword
-DB_NAME=resource_db
-DB_PORT=5432
-JWT_SECRET=your_super_secret_key_change_this
-```
-
-### 3. Run the Application
-The application handles database migrations automatically on startup.
-```bash
-go mod tidy
-go run cmd/main.go
-```
-*Server runs on port `:8080` by default.*
+* **Input Sanitization:** Automatic trimming and validation to prevent malformed data
 
 ---
 
-## 🧠 Architecture Highlights
+### **2\. Smart Booking System**
 
-*   **Layered Architecture:** Strict separation of concerns:
-    *   **Handler Layer:** Parse JSON, Validate Input, Send Response.
-    *   **Service Layer:** Business Logic, Conflict Calculation, Sanitization.
-    *   **Repository Layer:** Direct Database Access, Transactions.
-*   **Dependency Injection:** Dependencies are injected at startup (`main.go`), making the codebase testable and modular.
+* **Atomic Conflict Resolution:** Database transactions guarantee **zero double-bookings** under high concurrency
+
+* **Smart Suggestions:** Returns up to 4 alternative time slots when conflicts occur
+
+* **Strict Time Enforcement:** Bookings align to hourly slots (e.g., 9:00, 10:00)
+
+* **Reciprocal Cancellation:** Deleting a resource automatically cancels future bookings and notifies users
+
+---
+
+### **3\. Lifecycle Automation (Background Jobs)**
+
+* **Auto-Release Mechanism:** Hourly background worker releases bookings if users fail to check in within 15 minutes
+
+* **Check-In System:** Users must explicitly check in to secure usage
+
+---
+
+### **4\. Resource Inventory**
+
+* **Dynamic Properties:** Custom JSONB attributes (e.g., `"Projector": true`, `"Capacity": 12`)
+
+* **Advanced Filtering:** Search by type, location, availability window, and custom properties
+
+---
+
+## **🛠️ Technology Stack**
+
+### **Backend**
+
+* **Language:** Go (1.21+)
+
+* **Framework:** Gin
+
+* **Database:** PostgreSQL
+
+* **ORM:** GORM
+
+* **Concurrency:** Goroutines & Channels
+
+* **Auth:** JWT
+
+### **Frontend**
+
+* **Framework:** React
+
+* **Package Manager:** npm
+
+---
+
+## **⚙️ Setup & Installation**
+
+### **Prerequisites**
+
+* Go 1.21+
+
+* PostgreSQL (local or Docker)
+
+* Node.js \+ npm
+
+---
+
+## **🔧 Backend Setup**
+
+### **1\. Clone the Repository**
+
+`git clone https://github.com/ishaanbhela-ai/ResourceAllocationAndConflictResolver.git`  
+`cd ResourceAllocationAndConflictResolver/backend`
+
+### **2\. Configure Environment Variables**
+
+Create a `.env` file in the `backend` directory:
+
+`DB_HOST=localhost`  
+`DB_USER=postgres`  
+`DB_PASSWORD=yourpassword`  
+`DB_NAME=resource_db`  
+`DB_PORT=5432`  
+`JWT_SECRET=your_super_secret_key_change_this`
+
+### **3\. Run the Backend**
+
+`go mod tidy`  
+`go run cmd/main.go`
+
+➡️ Server runs on `http://localhost:8080`
+
+---
+
+## **💻 Frontend Setup (React)**
+
+Navigate to the frontend directory and run:
+
+`npm install`  
+`npm start`
+
+➡️ Frontend runs on `http://localhost:3000`
+
+---
+
+## **🧠 Architecture Highlights**
+
+* **Layered Architecture**
+
+  * **Handler Layer:** Request parsing, validation, responses
+
+  * **Service Layer:** Business logic, conflict resolution, sanitization
+
+  * **Repository Layer:** Database access and transactions
+
+* **Dependency Injection:** All dependencies are wired in `main.go`, making the system modular and testable
+
+---
