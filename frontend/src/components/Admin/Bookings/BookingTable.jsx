@@ -387,6 +387,11 @@ const BookingTable = ({ onApprove, onReject }) => {
                                                             </svg>
                                                         </div>
                                                     )}
+                                                    {!['pending', 'approved', 'checked-in'].includes(booking.status) && (
+                                                        <div className="text-gray-500 text-xs italic text-center">
+                                                            No action
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                             {/* Reason / Purpose Row */}

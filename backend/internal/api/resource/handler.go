@@ -24,18 +24,12 @@ type IResourceService interface {
 	DeleteResource(id int) error
 }
 
-// Breaking Dependency Cycle: Define Interface that BookingService satisfies
-type BookingNotifier interface {
-	CancelAllBookingsForResource(resourceID int) error
-}
-
 type ResourceHandler struct {
 	iservice IResourceService
-	notifier BookingNotifier
 }
 
-func NewResourceHandler(iservice IResourceService, notifier BookingNotifier) *ResourceHandler {
-	return &ResourceHandler{iservice: iservice, notifier: notifier}
+func NewResourceHandler(iservice IResourceService) *ResourceHandler {
+	return &ResourceHandler{iservice: iservice}
 }
 
 func (h *ResourceHandler) CreateResource(c *gin.Context) {
@@ -138,16 +132,16 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 		return
 	}
 
-	// 1. Notify & Cancel Bookings first
-	if h.notifier != nil {
-		// We ignore error here? Or log it? Ideally we should probably proceed with delete
-		// even if email fails, but maybe not if DB update fails.
-		// For now, if this fails, we block delete to be safe.
-		if err := h.notifier.CancelAllBookingsForResource(id); err != nil {
-			utils.Error(c, http.StatusInternalServerError, "failed to cancel active bookings")
-			return
-		}
-	}
+	// // 1. Notify & Cancel Bookings first
+	// if h.notifier != nil {
+	// 	// We ignore error here? Or log it? Ideally we should probably proceed with delete
+	// 	// even if email fails, but maybe not if DB update fails.
+	// 	// For now, if this fails, we block delete to be safe.
+	// 	if err := h.notifier.CancelAllBookingsForResource(id); err != nil {
+	// 		utils.Error(c, http.StatusInternalServerError, "failed to cancel active bookings")
+	// 		return
+	// 	}
+	// }
 
 	// 2. Delete Resource
 	if err := h.iservice.DeleteResource(id); err != nil {

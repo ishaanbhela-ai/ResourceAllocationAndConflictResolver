@@ -24,12 +24,18 @@ type ResourceRepository interface {
 	CountResourcesByType(typeID int) (int64, error)
 }
 
-type ResourceService struct {
-	Repo ResourceRepository
+// Breaking Dependency Cycle: Define Interface that BookingService satisfies
+type BookingNotifier interface {
+	CancelAllBookingsForResource(resourceID int) error
 }
 
-func NewResourceService(repo ResourceRepository) *ResourceService {
-	return &ResourceService{Repo: repo}
+type ResourceService struct {
+	Repo     ResourceRepository
+	notifier BookingNotifier
+}
+
+func NewResourceService(repo ResourceRepository, notifier BookingNotifier) *ResourceService {
+	return &ResourceService{Repo: repo, notifier: notifier}
 }
 
 func (s *ResourceService) CreateResource(res *Resource) error {
@@ -113,7 +119,15 @@ func (s *ResourceService) UpdateResource(res *Resource) error {
 }
 
 func (s *ResourceService) DeleteResource(id int) error {
-
+	// 1. Notify & Cancel Bookings first
+	if s.notifier != nil {
+		// We ignore error here? Or log it? Ideally we should probably proceed with delete
+		// even if email fails, but maybe not if DB update fails.
+		// For now, if this fails, we block delete to be safe.
+		if err := s.notifier.CancelAllBookingsForResource(id); err != nil {
+			return fmt.Errorf("%w: failed to cancel active bookings", utils.ErrConflict)
+		}
+	}
 	return s.Repo.DeleteResource(id)
 }
 

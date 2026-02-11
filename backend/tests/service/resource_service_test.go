@@ -66,11 +66,22 @@ func (m *MockResourceRepo) UpdateResourceType(resType *resource.ResourceType) er
 	return m.Called(resType).Error(0)
 }
 
+// MockBookingNotifier
+type MockBookingNotifier struct {
+	mock.Mock
+}
+
+func (m *MockBookingNotifier) CancelAllBookingsForResource(resourceID int) error {
+	args := m.Called(resourceID)
+	return args.Error(0)
+}
+
 // --- TEST SUITE ---
 
 func TestCreateResource_ValidationSuccess(t *testing.T) {
 	mockRepo := new(MockResourceRepo)
-	svc := resource.NewResourceService(mockRepo)
+	mockNotifier := new(MockBookingNotifier)
+	svc := resource.NewResourceService(mockRepo, mockNotifier)
 
 	// Local mock setup
 	resType := &resource.ResourceType{
@@ -95,7 +106,8 @@ func TestCreateResource_ValidationSuccess(t *testing.T) {
 
 func TestCreateResource_ValidationFail_MissingProp(t *testing.T) {
 	mockRepo := new(MockResourceRepo)
-	svc := resource.NewResourceService(mockRepo)
+	mockNotifier := new(MockBookingNotifier)
+	svc := resource.NewResourceService(mockRepo, mockNotifier)
 
 	resType := &resource.ResourceType{
 		ID:               1,
@@ -117,7 +129,8 @@ func TestCreateResource_ValidationFail_MissingProp(t *testing.T) {
 
 func TestDeleteResourceType_Conflict(t *testing.T) {
 	mockRepo := new(MockResourceRepo)
-	svc := resource.NewResourceService(mockRepo)
+	mockNotifier := new(MockBookingNotifier)
+	svc := resource.NewResourceService(mockRepo, mockNotifier)
 
 	// Simulate that there are 5 resources using this Type
 	mockRepo.On("CountResourcesByType", 99).Return(int64(5), nil)

@@ -52,8 +52,8 @@ func main() {
 	// RESOURCE FEATURE - Dependency Injection Chain
 	// ============================================
 	resourceRepo := repository.NewResourceRepository(db.GetConnection())
-	resourceService := resource.NewResourceService(resourceRepo)
-	resourceHandler := resource.NewResourceHandler(resourceService, bookingService)
+	resourceService := resource.NewResourceService(resourceRepo, bookingService)
+	resourceHandler := resource.NewResourceHandler(resourceService)
 
 	// ============================================
 	// BACKGROUND WORKER - Auto-Release Unchecked Bookings
